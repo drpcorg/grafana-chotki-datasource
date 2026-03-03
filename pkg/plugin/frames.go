@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -585,13 +584,4 @@ func buildListNodeCoreKeysFrame(keys []*api.NodeCoreKey, opts queryExecOptions) 
 	}
 	frame := buildNodeCoreKeyRowsFrame("list_node_core_keys", rows)
 	return frame, float64(len(rows)), nil
-}
-
-func sortedMapKeys(input map[string]int64) []string {
-	keys := make([]string, 0, len(input))
-	for key := range input {
-		keys = append(keys, key)
-	}
-	sort.Strings(keys)
-	return keys
 }
