@@ -149,7 +149,7 @@ This flow validates the datasource against a real `chotki` gRPC server from the 
 ### 1. Start only chotki in dproxy
 
 ```bash
-cd /Users/anton/Development/drpc/dproxy
+cd ../dproxy
 docker compose up -d chotki
 docker compose ps chotki
 ```
@@ -165,7 +165,7 @@ Expected service: `aggregator_api.AggregatorService`.
 ### 2. Prepare plugin Grafana integration env
 
 ```bash
-cd /Users/anton/Development/drpc/grafana-datasource-chotki/drpc-chotki-datasource
+cd /path/to/grafana-datasource-chotki/drpc-chotki-datasource
 cp .env.integration.example .env.integration
 ```
 
@@ -173,7 +173,6 @@ Default values:
 
 - `DPROXY_NETWORK_NAME=dproxy_keymanager`
 - `CHOTKI_GRPC_ADDR=chotki:9393`
-- `GRAFANA_VERSION=12.4.0`
 
 ### 3. Build plugin artifact
 
