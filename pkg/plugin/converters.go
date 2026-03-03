@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	api "github.com/p2p-org/dproxy/pkg/api"
+	api "github.com/drpcorg/grafana-chotki-datasource/pkg/api"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
