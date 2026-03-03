@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/drpc/chotki-datasource/pkg/models"
+	"github.com/drpcorg/grafana-chotki-datasource/pkg/models"
 	"github.com/google/uuid"
 )
 

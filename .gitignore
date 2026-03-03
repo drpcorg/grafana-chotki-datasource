@@ -29,6 +29,8 @@ coverage
 
 # Compiled binary addons (https://nodejs.org/api/addons.html)
 dist/
+dist-artifacts/
+release-artifacts/
 artifacts/
 work/
 ci/

@@ -1,5 +1,3 @@
-# This GitHub Action automates the process of building Grafana plugins.
-# (For more information, see https://github.com/grafana/plugin-actions/blob/main/build-plugin/README.md)
 name: Release
 
 on:
@@ -14,16 +12,106 @@ jobs:
     permissions:
       contents: write
     runs-on: ubuntu-latest
+    env:
+      GRAFANA_ACCESS_POLICY_TOKEN: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
     steps:
       - uses: actions/checkout@v6
         with:
           persist-credentials: false
 
-      - uses: grafana/plugin-actions/build-plugin@build-plugin/v1.0.2
-        # Uncomment to enable plugin signing
-        # (For more info on how to generate the access policy token see https://grafana.com/developers/plugin-tools/publish-a-plugin/sign-a-plugin#generate-an-access-policy-token)
-        #with:
-          # Make sure to save the token in your repository secrets
-          #policy_token: $
-          # Usage of GRAFANA_API_KEY is deprecated, prefer `policy_token` option above
-          #grafana_token: $
+      - name: Setup Node.js environment
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Check for backend
+        id: check-for-backend
+        run: |
+          if [ -f "Magefile.go" ]; then
+            echo "has-backend=true" >> $GITHUB_OUTPUT
+          else
+            echo "has-backend=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Setup Go environment
+        if: steps.check-for-backend.outputs.has-backend == 'true'
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+
+      - name: Build backend
+        if: steps.check-for-backend.outputs.has-backend == 'true'
+        uses: magefile/mage-action@6f50bbb8ea47d56e62dee92392788acbc8192d0b # v3.1.0
+        with:
+          version: latest
+          args: buildAll
+
+      - name: Sign plugin (optional)
+        if: ${{ env.GRAFANA_ACCESS_POLICY_TOKEN != '' }}
+        run: npm run sign
+
+      - name: Get plugin metadata
+        id: metadata
+        run: |
+          export GRAFANA_PLUGIN_ID=$(jq -r .id dist/plugin.json)
+          export GRAFANA_PLUGIN_VERSION=$(jq -r .info.version dist/plugin.json)
+          echo "plugin-id=${GRAFANA_PLUGIN_ID}" >> $GITHUB_OUTPUT
+          echo "plugin-version=${GRAFANA_PLUGIN_VERSION}" >> $GITHUB_OUTPUT
+
+      - name: Package release artifacts
+        id: package
+        run: |
+          set -euo pipefail
+
+          PLUGIN_ID='${{ steps.metadata.outputs.plugin-id }}'
+          PLUGIN_VERSION='${{ steps.metadata.outputs.plugin-version }}'
+          OUT_DIR='release-artifacts'
+          mkdir -p "${OUT_DIR}"
+
+          FULL_ARCHIVE="${PLUGIN_ID}-${PLUGIN_VERSION}.zip"
+          LINUX_ARCHIVE="${PLUGIN_ID}-${PLUGIN_VERSION}-linux.zip"
+
+          TMP_FULL=$(mktemp -d)
+          cp -R dist "${TMP_FULL}/${PLUGIN_ID}"
+          (
+            cd "${TMP_FULL}"
+            zip -qr "${FULL_ARCHIVE}" "${PLUGIN_ID}"
+          )
+          mv "${TMP_FULL}/${FULL_ARCHIVE}" "${OUT_DIR}/${FULL_ARCHIVE}"
+          rm -rf "${TMP_FULL}"
+
+          TMP_LINUX=$(mktemp -d)
+          cp -R dist "${TMP_LINUX}/${PLUGIN_ID}"
+          find "${TMP_LINUX}/${PLUGIN_ID}" -maxdepth 1 -type f \( -name '*_darwin_*' -o -name '*_windows_*' \) -delete
+          (
+            cd "${TMP_LINUX}"
+            zip -qr "${LINUX_ARCHIVE}" "${PLUGIN_ID}"
+          )
+          mv "${TMP_LINUX}/${LINUX_ARCHIVE}" "${OUT_DIR}/${LINUX_ARCHIVE}"
+          rm -rf "${TMP_LINUX}"
+
+          sha256sum "${OUT_DIR}/${FULL_ARCHIVE}" > "${OUT_DIR}/${FULL_ARCHIVE}.sha256"
+          sha256sum "${OUT_DIR}/${LINUX_ARCHIVE}" > "${OUT_DIR}/${LINUX_ARCHIVE}.sha256"
+
+          echo "full-archive=${OUT_DIR}/${FULL_ARCHIVE}" >> $GITHUB_OUTPUT
+          echo "full-sha=${OUT_DIR}/${FULL_ARCHIVE}.sha256" >> $GITHUB_OUTPUT
+          echo "linux-archive=${OUT_DIR}/${LINUX_ARCHIVE}" >> $GITHUB_OUTPUT
+          echo "linux-sha=${OUT_DIR}/${LINUX_ARCHIVE}.sha256" >> $GITHUB_OUTPUT
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            ${{ steps.package.outputs.full-archive }}
+            ${{ steps.package.outputs.full-sha }}
+            ${{ steps.package.outputs.linux-archive }}
+            ${{ steps.package.outputs.linux-sha }}
