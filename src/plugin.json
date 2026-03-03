@@ -1,11 +1,11 @@
 {
   "$schema": "https://raw.githubusercontent.com/grafana/grafana/main/docs/sources/developers/plugins/plugin.schema.json",
   "type": "datasource",
-  "name": "Chotki Datasource",
-  "id": "drpc-chotki-datasource",
+  "name": "Grafana Chotki Datasource",
+  "id": "grafana-chotki-datasource",
   "metrics": true,
   "backend": true,
-  "executable": "gpx_chotki_datasource",
+  "executable": "gpx_grafana_chotki_datasource",
   "info": {
     "description": "Read-only gRPC datasource for Chotki/Aggregator AggregatorService",
     "author": {
