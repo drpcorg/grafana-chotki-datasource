@@ -142,6 +142,100 @@ npm run server
 npm run e2e
 ```
 
+## Real Grafana + dproxy chotki E2E
+
+This flow validates the datasource against a real `chotki` gRPC server from the `dproxy` project.
+
+### 1. Start only chotki in dproxy
+
+```bash
+cd /Users/anton/Development/drpc/dproxy
+docker compose up -d chotki
+docker compose ps chotki
+```
+
+Optional gRPC check:
+
+```bash
+grpcurl -plaintext localhost:9393 list
+```
+
+Expected service: `aggregator_api.AggregatorService`.
+
+### 2. Prepare plugin Grafana integration env
+
+```bash
+cd /Users/anton/Development/drpc/grafana-datasource-chotki/drpc-chotki-datasource
+cp .env.integration.example .env.integration
+```
+
+Default values:
+
+- `DPROXY_NETWORK_NAME=dproxy_keymanager`
+- `CHOTKI_GRPC_ADDR=chotki:9393`
+- `GRAFANA_VERSION=12.4.0`
+
+### 3. Build plugin artifact
+
+```bash
+npm run build
+mage -v
+```
+
+If `mage` is not installed:
+
+```bash
+go install github.com/magefile/mage@latest
+```
+
+### 4. Start Grafana connected to dproxy network
+
+```bash
+docker compose -f docker-compose.yaml -f docker-compose.integration.yaml --env-file .env.integration up -d
+docker compose ps
+```
+
+Verify Grafana container is attached to the external dproxy network:
+
+```bash
+docker network inspect ${DPROXY_NETWORK_NAME:-dproxy_keymanager} | rg drpc-chotki-datasource
+```
+
+### 5. Manual smoke in Grafana UI
+
+Open [http://localhost:3000](http://localhost:3000):
+
+1. Data sources -> `chotki datasource` -> `Save & test`.
+2. Explore -> run `GetAllOwnerIds` in `table` and `stat`.
+3. If owner IDs exist:
+   - `GetOwner`, `GetFullOwner`, `GetOwnerHits`, `GetOwnerMetadata`.
+4. Keys flow:
+   - `ListKeys` -> take `key_id` -> `GetKey`, `GetKeyHits`.
+5. NodeCore flow:
+   - `ListNodeCoreKeys` -> if found -> `GetNodeCoreKey`.
+6. Run `GetOwnersWithBalance`.
+
+### 6. Negative checks
+
+1. `ownerId=not-a-uuid` -> expect validation error `parameter "ownerId" must be UUID or base64 bytes`.
+2. Timeout (deterministic): `docker pause dproxy-chotki-1`, run query, then `docker unpause dproxy-chotki-1` -> expect `context deadline exceeded` (`status=504` in Query Inspector/API).
+3. `limit=999999` in `ListKeys`/`ListNodeCoreKeys` -> returned rows do not exceed datasource `hardLimit`.
+4. Stop chotki (`docker compose stop chotki` in dproxy) and rerun query -> expect transport error mapped to `BadGateway` (`status=502` in API response).
+
+### 7. Acceptance checklist
+
+| Check | Expected |
+| --- | --- |
+| Save & test | `connected to AggregatorService` |
+| GetAllOwnerIds | Works in `table` and `stat` |
+| Owner pipeline | Owner methods work for valid ownerId |
+| Key pipeline | `ListKeys -> GetKey -> GetKeyHits` works |
+| NodeCore pipeline | `ListNodeCoreKeys -> GetNodeCoreKey` works if data exists |
+| Converter output | UUID/time/enum/array fields are readable |
+| Error mapping | invalid arg / timeout / unavailable mapped correctly |
+
+If `GetAllOwnerIds` returns empty result, infrastructure is considered healthy and owner/key/nodecore scenarios are `not applicable` until data appears.
+
 ## Notes
 
 - `plugin.json` changes require Grafana restart.

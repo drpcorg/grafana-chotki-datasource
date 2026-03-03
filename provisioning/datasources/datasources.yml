@@ -9,7 +9,7 @@ datasources:
     version: 1
     editable: true
     jsonData:
-      grpcAddress: 'localhost:5400'
+      grpcAddress: '${CHOTKI_GRPC_ADDR}'
       insecure: true
       timeoutMs: 4000
       defaultLimit: 200

@@ -1,0 +1,12 @@
+services:
+  grafana:
+    networks:
+      - default
+      - dproxy
+    environment:
+      CHOTKI_GRPC_ADDR: ${CHOTKI_GRPC_ADDR:-chotki:9393}
+
+networks:
+  dproxy:
+    external: true
+    name: ${DPROXY_NETWORK_NAME:-dproxy_keymanager}

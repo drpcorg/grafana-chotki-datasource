@@ -457,11 +457,8 @@ func (d *Datasource) CheckHealth(ctx context.Context, _ *backend.CheckHealthRequ
 	healthCtx, cancel := context.WithTimeout(ctx, healthTimeout)
 	defer cancel()
 
-	_, err := d.client.GetOwnerHits(d.withAuth(healthCtx), &api.GetOwnerHitsRequest{})
+	_, err := d.client.GetAllOwnerIds(d.withAuth(healthCtx), &api.GetAllOwnerIdsRequest{})
 	if err != nil {
-		if statusErr, ok := status.FromError(err); ok && statusErr.Code() == codes.InvalidArgument {
-			return &backend.CheckHealthResult{Status: backend.HealthStatusOk, Message: "connected to AggregatorService"}, nil
-		}
 		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: err.Error()}, nil
 	}
 
