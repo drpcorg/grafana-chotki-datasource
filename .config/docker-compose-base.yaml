@@ -1,7 +1,7 @@
 services:
   grafana:
     user: root
-    container_name: 'drpc-chotki-datasource'
+    container_name: 'grafana-chotki-datasource'
 
     build:
       context: .
@@ -19,13 +19,13 @@ services:
     cap_add:
       - SYS_PTRACE
     volumes:
-      - ../dist:/var/lib/grafana/plugins/drpc-chotki-datasource
+      - ../dist:/var/lib/grafana/plugins/grafana-chotki-datasource
       - ../provisioning:/etc/grafana/provisioning
-      - ..:/root/drpc-chotki-datasource
+      - ..:/root/grafana-chotki-datasource
 
     environment:
       NODE_ENV: development
-      GF_LOG_FILTERS: plugin.drpc-chotki-datasource:debug
+      GF_LOG_FILTERS: plugin.grafana-chotki-datasource:debug
       GF_LOG_LEVEL: debug
       GF_DATAPROXY_LOGGING: 1
-      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: drpc-chotki-datasource
+      GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS: grafana-chotki-datasource

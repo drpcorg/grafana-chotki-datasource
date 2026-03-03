@@ -1,8 +1,8 @@
 apiVersion: 1
 
 datasources:
-  - name: 'chotki datasource'
-    type: 'drpc-chotki-datasource'
+  - name: 'grafana chotki datasource'
+    type: 'grafana-chotki-datasource'
     access: proxy
     isDefault: false
     orgId: 1
