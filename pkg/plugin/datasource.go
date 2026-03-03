@@ -93,9 +93,10 @@ func dialGRPC(ctx context.Context, settings *models.PluginSettings) (*grpc.Clien
 	opts := []grpc.DialOption{
 		grpc.WithTransportCredentials(transportCreds),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(32 << 20)),
-		grpc.WithBlock(),
+		grpc.WithBlock(), //nolint:staticcheck // Keep blocking dial behavior to fail fast on invalid datasource config.
 	}
 
+	//nolint:staticcheck // We intentionally use DialContext for blocking init semantics in datasource construction.
 	conn, err := grpc.DialContext(dialCtx, settings.GRPCAddress, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("gRPC dial %s: %w", settings.GRPCAddress, err)
