@@ -120,6 +120,15 @@ npm run sign
 - Canary rollout: one Grafana instance -> full pool.
 - Rollback: previous artifact version + Grafana restart.
 
+### GitHub Release artifacts
+
+- Push a version tag (`v*`, for example `v1.0.1`).
+- Workflow `.github/workflows/release.yml` builds the plugin and publishes release assets:
+  - `drpc-chotki-datasource-<version>.zip` (all platforms)
+  - `drpc-chotki-datasource-<version>-linux.zip` (recommended for Linux Grafana hosts)
+  - `*.sha256` checksums
+- If repository secret `GRAFANA_ACCESS_POLICY_TOKEN` is configured, the release workflow signs the plugin before packaging.
+
 ## Testing
 
 ### Backend unit tests
