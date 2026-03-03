@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	api "github.com/p2p-org/dproxy/pkg/api"
+	api "github.com/drpcorg/grafana-chotki-datasource/pkg/api"
 )
 
 type keyRow struct {
