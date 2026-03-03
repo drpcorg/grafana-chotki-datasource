@@ -215,7 +215,7 @@ jobs:
       - name: Docker logs
         if: ${{ always() && steps.run-tests.outcome == 'failure' }}
         run: |
-          docker logs drpc-chotki-datasource >& grafana-server.log
+          docker logs grafana-chotki-datasource >& grafana-server.log
 
       - name: Stop grafana docker
         run: docker compose down
@@ -246,4 +246,3 @@ jobs:
         uses: grafana/plugin-actions/playwright-gh-pages/deploy-report-pages@deploy-report-pages/v1.1.0
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-

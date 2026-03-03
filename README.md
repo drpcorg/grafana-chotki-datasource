@@ -1,4 +1,4 @@
-# Chotki Grafana Data Source (MVP)
+# Grafana Chotki Data Source (MVP)
 
 Read-only Grafana data source plugin for `AggregatorService` (Chotki/Aggregator gRPC).
 
@@ -105,7 +105,7 @@ See:
 ### Internal dev (unsigned)
 
 - Enable unsigned plugins in Grafana:
-  - `allow_loading_unsigned_plugins=drpc-chotki-datasource`
+  - `allow_loading_unsigned_plugins=grafana-chotki-datasource`
 - Deploy artifact and restart Grafana.
 
 ### Internal production (signed private)
@@ -124,8 +124,8 @@ npm run sign
 
 - Push a version tag (`v*`, for example `v1.0.1`).
 - Workflow `.github/workflows/release.yml` builds the plugin and publishes release assets:
-  - `drpc-chotki-datasource-<version>.zip` (all platforms)
-  - `drpc-chotki-datasource-<version>-linux.zip` (recommended for Linux Grafana hosts)
+  - `grafana-chotki-datasource-<version>.zip` (all platforms)
+  - `grafana-chotki-datasource-<version>-linux.zip` (recommended for Linux Grafana hosts)
   - `*.sha256` checksums
 - If repository secret `GRAFANA_ACCESS_POLICY_TOKEN` is configured, the release workflow signs the plugin before packaging.
 
@@ -174,7 +174,7 @@ Expected service: `aggregator_api.AggregatorService`.
 ### 2. Prepare plugin Grafana integration env
 
 ```bash
-cd /path/to/grafana-datasource-chotki/drpc-chotki-datasource
+cd /path/to/grafana-datasource-chotki/grafana-chotki-datasource
 cp .env.integration.example .env.integration
 ```
 
@@ -206,7 +206,7 @@ docker compose ps
 Verify Grafana container is attached to the external dproxy network:
 
 ```bash
-docker network inspect ${DPROXY_NETWORK_NAME:-dproxy_keymanager} | rg drpc-chotki-datasource
+docker network inspect ${DPROXY_NETWORK_NAME:-dproxy_keymanager} | rg grafana-chotki-datasource
 ```
 
 ### 5. Manual smoke in Grafana UI
@@ -247,4 +247,4 @@ If `GetAllOwnerIds` returns empty result, infrastructure is considered healthy a
 ## Notes
 
 - `plugin.json` changes require Grafana restart.
-- Plugin ID is fixed: `drpc-chotki-datasource`.
+- Plugin ID is fixed: `grafana-chotki-datasource`.

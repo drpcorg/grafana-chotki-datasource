@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/drpc/chotki-datasource/pkg/models"
+	"github.com/drpcorg/grafana-chotki-datasource/pkg/models"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
@@ -420,10 +420,10 @@ func (d *Datasource) recordMethodCall(method string, latency time.Duration, err 
 	}
 
 	if err != nil {
-		backend.Logger.Warn("chotki datasource query failed", "method", method, "latency_ms", metric.LastLatencyMs, "error", err.Error())
+		backend.Logger.Warn("grafana chotki datasource query failed", "method", method, "latency_ms", metric.LastLatencyMs, "error", err.Error())
 		return
 	}
-	backend.Logger.Debug("chotki datasource query succeeded", "method", method, "latency_ms", metric.LastLatencyMs)
+	backend.Logger.Debug("grafana chotki datasource query succeeded", "method", method, "latency_ms", metric.LastLatencyMs)
 }
 
 func (d *Datasource) ensureReady() error {

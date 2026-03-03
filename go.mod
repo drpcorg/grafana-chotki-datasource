@@ -1,4 +1,4 @@
-module github.com/drpc/chotki-datasource
+module github.com/drpcorg/grafana-chotki-datasource
 
 go 1.26.0
 
