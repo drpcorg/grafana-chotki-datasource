@@ -1,0 +1,24 @@
+apiVersion: 1
+
+datasources:
+  - name: 'chotki datasource'
+    type: 'drpc-chotki-datasource'
+    access: proxy
+    isDefault: false
+    orgId: 1
+    version: 1
+    editable: true
+    jsonData:
+      grpcAddress: 'localhost:5400'
+      insecure: true
+      timeoutMs: 4000
+      defaultLimit: 200
+      hardLimit: 1000
+      decodeIds: true
+      decodeEnums: true
+      decodeTimestamps: true
+    secureJsonData:
+      authToken: ''
+      tlsCACert: ''
+      tlsClientCert: ''
+      tlsClientKey: ''

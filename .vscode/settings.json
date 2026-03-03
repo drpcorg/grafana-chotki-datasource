@@ -1,0 +1,10 @@
+{
+    "go.goroot": "/Users/anton/.local/share/mise/installs/go/1.26.0",
+    "debug.javascript.defaultRuntimeExecutable": {
+        "pwa-node": "/Users/anton/.local/share/mise/shims/node"
+    },
+    "go.alternateTools": {
+        "go": "/Users/anton/.local/share/mise/shims/go",
+        "gopls": "/Users/anton/.local/share/mise/shims/gopls"
+    }
+}
