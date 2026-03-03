@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/drpc/chotki-datasource/pkg/models"
+	"github.com/drpcorg/grafana-chotki-datasource/pkg/models"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 )
 
