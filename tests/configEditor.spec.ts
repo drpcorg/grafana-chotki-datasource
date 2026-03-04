@@ -5,6 +5,6 @@ test('smoke: should render config editor', async ({ createDataSourceConfigPage, 
   await createDataSourceConfigPage({ type: ds.type });
 
   await expect(page.getByLabel('gRPC Address')).toBeVisible();
-  await expect(page.getByLabel('Insecure')).toBeVisible();
+  await expect(page.locator('#config-editor-insecure')).toBeVisible();
   await expect(page.getByLabel('Timeout (ms)')).toBeVisible();
 });

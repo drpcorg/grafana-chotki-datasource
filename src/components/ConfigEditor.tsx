@@ -72,7 +72,12 @@ export function ConfigEditor({ onOptionsChange, options }: Props) {
       </InlineField>
 
       <InlineField label="Insecure" labelWidth={20}>
-        <Switch value={Boolean(jsonData.insecure ?? true)} onChange={onBoolChange('insecure')} />
+        <Switch
+          id="config-editor-insecure"
+          label="Insecure"
+          value={Boolean(jsonData.insecure ?? true)}
+          onChange={onBoolChange('insecure')}
+        />
       </InlineField>
 
       <InlineField label="Timeout (ms)" labelWidth={20}>
@@ -106,15 +111,30 @@ export function ConfigEditor({ onOptionsChange, options }: Props) {
       </InlineField>
 
       <InlineField label="Decode IDs" labelWidth={20}>
-        <Switch value={Boolean(jsonData.decodeIds ?? true)} onChange={onBoolChange('decodeIds')} />
+        <Switch
+          id="config-editor-decode-ids"
+          label="Decode IDs"
+          value={Boolean(jsonData.decodeIds ?? true)}
+          onChange={onBoolChange('decodeIds')}
+        />
       </InlineField>
 
       <InlineField label="Decode Enums" labelWidth={20}>
-        <Switch value={Boolean(jsonData.decodeEnums ?? true)} onChange={onBoolChange('decodeEnums')} />
+        <Switch
+          id="config-editor-decode-enums"
+          label="Decode Enums"
+          value={Boolean(jsonData.decodeEnums ?? true)}
+          onChange={onBoolChange('decodeEnums')}
+        />
       </InlineField>
 
       <InlineField label="Decode Timestamps" labelWidth={20}>
-        <Switch value={Boolean(jsonData.decodeTimestamps ?? true)} onChange={onBoolChange('decodeTimestamps')} />
+        <Switch
+          id="config-editor-decode-timestamps"
+          label="Decode Timestamps"
+          value={Boolean(jsonData.decodeTimestamps ?? true)}
+          onChange={onBoolChange('decodeTimestamps')}
+        />
       </InlineField>
 
       <InlineField label="Auth Token" labelWidth={20}>

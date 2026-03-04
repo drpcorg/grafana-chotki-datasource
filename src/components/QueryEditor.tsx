@@ -237,6 +237,8 @@ export function QueryEditor({ query, onChange, onRunQuery }: Props) {
     <Stack direction="column" gap={1}>
       <InlineField label="Mode" labelWidth={14}>
         <RadioButtonGroup
+          id="query-editor-mode"
+          aria-label="Mode"
           options={[
             { label: 'Builder', value: 'builder' },
             { label: 'Raw JSON', value: 'raw' },
@@ -251,6 +253,7 @@ export function QueryEditor({ query, onChange, onRunQuery }: Props) {
           <InlineField label="Method" labelWidth={14}>
             <Select<RpcMethod>
               inputId="query-editor-method"
+              aria-label="Method"
               options={methodOptions}
               value={methodOptions.find((item) => item.value === selectedMethod)}
               onChange={onMethodChange}
@@ -314,6 +317,8 @@ export function QueryEditor({ query, onChange, onRunQuery }: Props) {
 
           <InlineField label="Decode IDs" labelWidth={14}>
             <Switch
+              id="query-editor-decode-ids"
+              label="Decode IDs"
               value={Boolean(options.decodeIds ?? true)}
               onChange={(event) => setOptions({ decodeIds: event.currentTarget.checked })}
             />
@@ -321,6 +326,8 @@ export function QueryEditor({ query, onChange, onRunQuery }: Props) {
 
           <InlineField label="Decode Enums" labelWidth={14}>
             <Switch
+              id="query-editor-decode-enums"
+              label="Decode Enums"
               value={Boolean(options.decodeEnums ?? true)}
               onChange={(event) => setOptions({ decodeEnums: event.currentTarget.checked })}
             />
@@ -328,6 +335,8 @@ export function QueryEditor({ query, onChange, onRunQuery }: Props) {
 
           <InlineField label="Decode Time" labelWidth={14}>
             <Switch
+              id="query-editor-decode-time"
+              label="Decode Time"
               value={Boolean(options.decodeTimestamps ?? true)}
               onChange={(event) => setOptions({ decodeTimestamps: event.currentTarget.checked })}
             />
