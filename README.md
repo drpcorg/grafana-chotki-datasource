@@ -17,6 +17,91 @@ Read-only Grafana data source plugin for `AggregatorService` (Chotki/Aggregator 
   - `table`
   - `stat`
 
+## Admin quick start (install from Release assets)
+
+Use this section for fastest production-like installation from GitHub Releases:
+
+- Releases: [drpcorg/grafana-chotki-datasource/releases](https://github.com/drpcorg/grafana-chotki-datasource/releases)
+- Recommended asset for Linux Grafana hosts: `grafana-chotki-datasource-<version>-linux.zip`
+- Plugin ID: `grafana-chotki-datasource`
+
+### 1. Download artifact + checksum
+
+```bash
+# set VER to the release you want to install
+export VER=1.0.1
+curl -fL -o /tmp/grafana-chotki-datasource-linux.zip \
+  "https://github.com/drpcorg/grafana-chotki-datasource/releases/download/v${VER}/grafana-chotki-datasource-${VER}-linux.zip"
+curl -fL -o /tmp/grafana-chotki-datasource-linux.zip.sha256 \
+  "https://github.com/drpcorg/grafana-chotki-datasource/releases/download/v${VER}/grafana-chotki-datasource-${VER}-linux.zip.sha256"
+```
+
+### 2. Verify checksum
+
+```bash
+cd /tmp
+sha256sum -c grafana-chotki-datasource-linux.zip.sha256
+```
+
+Expected: `OK`.
+
+### 3. Install plugin on Grafana host
+
+```bash
+sudo mkdir -p /var/lib/grafana/plugins
+sudo rm -rf /var/lib/grafana/plugins/grafana-chotki-datasource
+sudo unzip -qo /tmp/grafana-chotki-datasource-linux.zip -d /var/lib/grafana/plugins
+sudo chown -R grafana:grafana /var/lib/grafana/plugins/grafana-chotki-datasource
+```
+
+### 4. Configure plugin loading and restart Grafana
+
+If plugin is unsigned (for example, release was built without signing token), allow it explicitly:
+
+```ini
+[plugins]
+allow_loading_unsigned_plugins = grafana-chotki-datasource
+```
+
+Or environment variable:
+
+```bash
+GF_PLUGINS_ALLOW_LOADING_UNSIGNED_PLUGINS=grafana-chotki-datasource
+```
+
+Then restart Grafana:
+
+```bash
+sudo systemctl restart grafana-server
+```
+
+### 5. Configure datasource (UI or provisioning)
+
+Minimal provisioning example:
+
+```yaml
+apiVersion: 1
+datasources:
+  - name: grafana chotki datasource
+    type: grafana-chotki-datasource
+    access: proxy
+    jsonData:
+      grpcAddress: chotki:9393
+      insecure: true
+      timeoutMs: 4000
+      defaultLimit: 200
+      hardLimit: 1000
+      decodeIds: true
+      decodeEnums: true
+      decodeTimestamps: true
+```
+
+### 6. Smoke-check
+
+1. Grafana -> Data sources -> `grafana chotki datasource` -> `Save & test`.
+2. Expect: `connected to AggregatorService`.
+3. Explore -> run `GetAllOwnerIds` (table mode), expect status `200`.
+
 ## Query model
 
 ```json
