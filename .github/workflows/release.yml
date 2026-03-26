@@ -28,8 +28,13 @@ jobs:
       - name: Set version from tag
         run: |
           TAG_VERSION="${GITHUB_REF_NAME#v}"
-          echo "Updating package.json version to ${TAG_VERSION}"
-          npm version "${TAG_VERSION}" --no-git-tag-version
+          CURRENT_VERSION=$(jq -r .version package.json)
+          if [ "${CURRENT_VERSION}" != "${TAG_VERSION}" ]; then
+            echo "Updating package.json version from ${CURRENT_VERSION} to ${TAG_VERSION}"
+            npm version "${TAG_VERSION}" --no-git-tag-version --allow-same-version
+          else
+            echo "package.json already at version ${TAG_VERSION}"
+          fi
 
       - name: Install dependencies
         run: npm ci
