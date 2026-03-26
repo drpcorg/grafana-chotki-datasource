@@ -451,19 +451,41 @@ func (d *Datasource) CheckHealth(ctx context.Context, _ *backend.CheckHealthRequ
 		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: err.Error()}, nil
 	}
 
-	healthTimeout := d.settings.RequestTimeout()
-	if healthTimeout > 2*time.Second {
-		healthTimeout = 2 * time.Second
-	}
-	healthCtx, cancel := context.WithTimeout(ctx, healthTimeout)
+	healthCtx, cancel := context.WithTimeout(ctx, d.settings.RequestTimeout())
 	defer cancel()
 
 	_, err := d.client.GetAllOwnerIds(d.withAuth(healthCtx), &api.GetAllOwnerIdsRequest{})
 	if err != nil {
-		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: err.Error()}, nil
+		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: healthErrorMessage(d.settings, err)}, nil
 	}
 
 	return &backend.CheckHealthResult{Status: backend.HealthStatusOk, Message: "connected to AggregatorService"}, nil
+}
+
+func healthErrorMessage(settings *models.PluginSettings, err error) string {
+	addr := settings.GRPCAddress
+
+	if errors.Is(err, context.DeadlineExceeded) {
+		return fmt.Sprintf("connection to %s timed out after %dms: verify the address is reachable from the Grafana server and the timeout is sufficient", addr, settings.TimeoutMs)
+	}
+
+	st, ok := status.FromError(err)
+	if !ok {
+		return fmt.Sprintf("failed to connect to %s: %v", addr, err)
+	}
+
+	switch st.Code() {
+	case codes.Unavailable:
+		return fmt.Sprintf("chotki at %s is unavailable: %s. Check that the host and port are correct, the service is running, and network/firewall rules allow the connection", addr, st.Message())
+	case codes.Unauthenticated:
+		return fmt.Sprintf("authentication failed for %s: %s. Verify the auth token is correct", addr, st.Message())
+	case codes.PermissionDenied:
+		return fmt.Sprintf("permission denied for %s: %s. Verify the auth token has sufficient privileges", addr, st.Message())
+	case codes.DeadlineExceeded:
+		return fmt.Sprintf("request to %s timed out after %dms: %s", addr, settings.TimeoutMs, st.Message())
+	default:
+		return fmt.Sprintf("health check failed for %s: [%s] %s", addr, st.Code(), st.Message())
+	}
 }
 
 func grpcErrorToResponse(err error) backend.DataResponse {
