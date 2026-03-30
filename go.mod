@@ -2,7 +2,7 @@ module github.com/drpcorg/grafana-chotki-datasource
 
 go 1.26.0
 
-require github.com/grafana/grafana-plugin-sdk-go v0.290.0
+require github.com/grafana/grafana-plugin-sdk-go v0.290.1
 
 require (
 	github.com/clipperhouse/displaywidth v0.6.2 // indirect
@@ -80,7 +80,7 @@ require (
 	go.yaml.in/yaml/v2 v2.4.3 // indirect
 	golang.org/x/exp v0.0.0-20260212183809-81e46e3db34a // indirect
 	golang.org/x/mod v0.33.0 // indirect
-	golang.org/x/net v0.50.0 // indirect
+	golang.org/x/net v0.51.0 // indirect
 	golang.org/x/sync v0.19.0 // indirect
 	golang.org/x/sys v0.41.0 // indirect
 	golang.org/x/telemetry v0.0.0-20260213145524-e0ab670178e1 // indirect
