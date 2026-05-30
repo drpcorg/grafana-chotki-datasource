@@ -1,0 +1,10 @@
+version: "2"
+
+# The plugin's Go backend lives under ./pkg and ./Magefile.go. CI lints with
+# `golangci-lint run ./...`, which also walks into node_modules (e.g. the Go
+# implementation vendored inside the `flatted` npm package). Exclude node_modules
+# so third-party JS-package Go files are never linted.
+linters:
+  exclusions:
+    paths:
+      - node_modules
