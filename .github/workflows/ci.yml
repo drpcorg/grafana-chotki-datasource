@@ -198,7 +198,13 @@ jobs:
           url: http://localhost:3000/login
 
       - name: Install Playwright Browsers
-        run: npm exec playwright install chromium --with-deps
+        # `--with-deps` makes Playwright install OS packages via apt. Under
+        # Node 24 an interactive apt/debconf prompt can hang the subprocess
+        # forever (Node 22 closed stdin so it proceeded). Force non-interactive
+        # apt and redirect stdin from /dev/null so it can never block on input.
+        run: npm exec -- playwright install chromium --with-deps < /dev/null
+        env:
+          DEBIAN_FRONTEND: noninteractive
 
       - name: Run Playwright tests
         id: run-tests
