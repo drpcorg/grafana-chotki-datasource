@@ -14,6 +14,16 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    ignore:
+      # eslint 10 is blocked: eslint-plugin-react has no eslint-10-compatible
+      # release, and @grafana/eslint-config 10 breaks the create-plugin scaffold
+      # (.config/eslint.config.mjs imports the removed flat.js export; stylistic
+      # plugin was renamed). Remove both once eslint-plugin-react supports
+      # eslint 10 AND @grafana/create-plugin updates the scaffold — see PR #67.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@grafana/eslint-config"
+        update-types: ["version-update:semver-major"]
     groups:
       unit-test:
         patterns:
