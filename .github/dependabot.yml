@@ -30,7 +30,10 @@ updates:
         patterns:
           - "@grafana/*"
         dependency-type: "production"
+        # Include majors so @grafana/* packages are always bumped together
+        # (a lone @grafana/data major PR mixes v12/v13 types — see #49)
         update-types:
+          - "major"
           - "minor"
           - "patch"
       react:
