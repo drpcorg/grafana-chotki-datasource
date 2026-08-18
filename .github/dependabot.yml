@@ -24,6 +24,15 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "@grafana/eslint-config"
         update-types: ["version-update:semver-major"]
+      # typescript 7 is blocked: no @typescript-eslint release accepts TS >=6.1
+      # (8.67.0 still peers typescript ">=4.8.4 <6.1.0", and there is no v9
+      # line), so npm ci fails on ERESOLVE before anything compiles. TS 7 also
+      # removed baseUrl, which the create-plugin-managed .config/tsconfig.json
+      # still sets (TS5102); ignoreDeprecations does not suppress a removed
+      # option. Remove once @typescript-eslint supports TS 7 AND
+      # @grafana/tsconfig drops baseUrl — see PR #76.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       unit-test:
         patterns:
