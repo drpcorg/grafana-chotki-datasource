@@ -9,6 +9,10 @@ Read-only Grafana data source plugin for `AggregatorService` (Chotki/Aggregator 
   - `GetKey`, `GetKeyHits`, `ListKeys`
   - `GetOwnersWithBalance`, `GetAllOwnerIds`
   - `GetNodeCoreKey`, `ListNodeCoreKeys`
+  - `GetAuthSnapshot` (owner+key snapshot with counters and package pools)
+  - `GetAuthSnapshots` (batched; `refs` as `[{"ownerId":"uuid","keyId":"uuid"}]`,
+    `"ownerId:keyId,..."` pairs, or parallel `ownerIds`/`keyIds` lists)
+  - `GetPackagePools` (prepaid package pools with `remaining` = credited − spent)
 - Query model: `method + params` (no SQL/DSL in MVP)
 - Query editor modes:
   - Builder (form fields by method)

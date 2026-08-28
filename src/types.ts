@@ -12,7 +12,10 @@ export type RpcMethod =
   | 'GetOwnersWithBalance'
   | 'GetAllOwnerIds'
   | 'GetNodeCoreKey'
-  | 'ListNodeCoreKeys';
+  | 'ListNodeCoreKeys'
+  | 'GetAuthSnapshot'
+  | 'GetAuthSnapshots'
+  | 'GetPackagePools';
 
 export type QueryFormat = 'table' | 'stat';
 export type QueryEditorMode = 'builder' | 'raw';

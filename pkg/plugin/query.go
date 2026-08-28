@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/drpcorg/grafana-chotki-datasource/pkg/api"
 	"github.com/drpcorg/grafana-chotki-datasource/pkg/models"
 	"github.com/google/uuid"
 )
@@ -23,6 +24,9 @@ const (
 	methodGetAllOwnerIDs       = "GetAllOwnerIds"
 	methodGetNodeCoreKey       = "GetNodeCoreKey"
 	methodListNodeCoreKeys     = "ListNodeCoreKeys"
+	methodGetAuthSnapshot      = "GetAuthSnapshot"
+	methodGetAuthSnapshots     = "GetAuthSnapshots"
+	methodGetPackagePools      = "GetPackagePools"
 )
 
 var allowedMethods = map[string]struct{}{
@@ -37,6 +41,9 @@ var allowedMethods = map[string]struct{}{
 	methodGetAllOwnerIDs:       {},
 	methodGetNodeCoreKey:       {},
 	methodListNodeCoreKeys:     {},
+	methodGetAuthSnapshot:      {},
+	methodGetAuthSnapshots:     {},
+	methodGetPackagePools:      {},
 }
 
 type queryModel struct {
@@ -305,5 +312,147 @@ func getOptionalInt64Param(params map[string]any, aliases ...string) (int64, boo
 		return parsed, true, nil
 	default:
 		return 0, false, fmt.Errorf("parameter %q must be int64", aliases[0])
+	}
+}
+
+// parseAuthRefs builds AggregatorService.AuthRef pairs for GetAuthSnapshots.
+// Accepted param shapes:
+//   - refs: JSON array string, e.g. [{"ownerId":"...","keyId":"..."}]
+//   - refs: comma-separated "ownerId:keyId" pairs
+//   - ownerIds + keyIds: parallel lists (arrays or comma-separated strings)
+func parseAuthRefs(params map[string]any) ([]*api.AuthRef, error) {
+	if raw, ok := getParam(params, "refs"); ok && raw != nil {
+		return parseAuthRefsValue(raw)
+	}
+
+	ownerRaw, hasOwners := getParam(params, "ownerIds", "owner_ids")
+	keyRaw, hasKeys := getParam(params, "keyIds", "key_ids")
+	if !hasOwners || !hasKeys {
+		return nil, fmt.Errorf("refs (JSON array) or ownerIds+keyIds params are required")
+	}
+
+	ownerIDs, err := parseUUIDListParam(ownerRaw, "ownerIds")
+	if err != nil {
+		return nil, err
+	}
+	keyIDs, err := parseUUIDListParam(keyRaw, "keyIds")
+	if err != nil {
+		return nil, err
+	}
+	if len(ownerIDs) != len(keyIDs) {
+		return nil, fmt.Errorf("ownerIds (%d) and keyIds (%d) must have the same length", len(ownerIDs), len(keyIDs))
+	}
+
+	refs := make([]*api.AuthRef, 0, len(ownerIDs))
+	for i := range ownerIDs {
+		refs = append(refs, &api.AuthRef{OwnerId: ownerIDs[i], KeyId: keyIDs[i]})
+	}
+	return refs, nil
+}
+
+func parseAuthRefsValue(raw any) ([]*api.AuthRef, error) {
+	switch value := raw.(type) {
+	case string:
+		trimmed := strings.TrimSpace(value)
+		if trimmed == "" {
+			return nil, fmt.Errorf("refs must not be empty")
+		}
+		if strings.HasPrefix(trimmed, "[") {
+			var entries []map[string]any
+			if err := json.Unmarshal([]byte(trimmed), &entries); err != nil {
+				return nil, fmt.Errorf("refs json: %w", err)
+			}
+			refs := make([]*api.AuthRef, 0, len(entries))
+			for i, entry := range entries {
+				ownerID, err := getRequiredUUIDParam(entry, "ownerId", "owner_id", "ownerID")
+				if err != nil {
+					return nil, fmt.Errorf("refs[%d]: %w", i, err)
+				}
+				keyID, err := getRequiredUUIDParam(entry, "keyId", "key_id", "keyID")
+				if err != nil {
+					return nil, fmt.Errorf("refs[%d]: %w", i, err)
+				}
+				refs = append(refs, &api.AuthRef{OwnerId: ownerID, KeyId: keyID})
+			}
+			if len(refs) == 0 {
+				return nil, fmt.Errorf("refs must contain at least one entry")
+			}
+			return refs, nil
+		}
+		parts := strings.Split(trimmed, ",")
+		refs := make([]*api.AuthRef, 0, len(parts))
+		for i, part := range parts {
+			pair := strings.SplitN(strings.TrimSpace(part), ":", 2)
+			if len(pair) != 2 {
+				return nil, fmt.Errorf("refs[%d]: expected ownerId:keyId", i)
+			}
+			ownerID, err := parseUUIDLike(pair[0], "ownerId")
+			if err != nil {
+				return nil, fmt.Errorf("refs[%d]: %w", i, err)
+			}
+			keyID, err := parseUUIDLike(pair[1], "keyId")
+			if err != nil {
+				return nil, fmt.Errorf("refs[%d]: %w", i, err)
+			}
+			refs = append(refs, &api.AuthRef{OwnerId: ownerID, KeyId: keyID})
+		}
+		return refs, nil
+	case []any:
+		refs := make([]*api.AuthRef, 0, len(value))
+		for i, item := range value {
+			itemRefs, err := parseAuthRefsValue(item)
+			if err != nil {
+				return nil, fmt.Errorf("refs[%d]: %w", i, err)
+			}
+			refs = append(refs, itemRefs...)
+		}
+		if len(refs) == 0 {
+			return nil, fmt.Errorf("refs must contain at least one entry")
+		}
+		return refs, nil
+	default:
+		return nil, fmt.Errorf("refs must be a JSON array string")
+	}
+}
+
+func parseUUIDListParam(raw any, paramName string) ([][]byte, error) {
+	switch value := raw.(type) {
+	case []any:
+		ids := make([][]byte, 0, len(value))
+		for i, item := range value {
+			id, err := parseUUIDLike(item, fmt.Sprintf("%s[%d]", paramName, i))
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, id)
+		}
+		return ids, nil
+	case []string:
+		ids := make([][]byte, 0, len(value))
+		for i, item := range value {
+			id, err := parseUUIDStringOrBase64(item, fmt.Sprintf("%s[%d]", paramName, i))
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, id)
+		}
+		return ids, nil
+	case string:
+		parts := strings.Split(value, ",")
+		ids := make([][]byte, 0, len(parts))
+		for i, part := range parts {
+			part = strings.TrimSpace(part)
+			if part == "" {
+				continue
+			}
+			id, err := parseUUIDStringOrBase64(part, fmt.Sprintf("%s[%d]", paramName, i))
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, id)
+		}
+		return ids, nil
+	default:
+		return nil, fmt.Errorf("%s must be a list of UUIDs", paramName)
 	}
 }

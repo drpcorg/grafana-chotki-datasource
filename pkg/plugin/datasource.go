@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
+	api "github.com/drpcorg/grafana-chotki-datasource/pkg/api"
 	"github.com/drpcorg/grafana-chotki-datasource/pkg/models"
 	"github.com/grafana/grafana-plugin-sdk-go/backend"
 	"github.com/grafana/grafana-plugin-sdk-go/backend/instancemgmt"
 	"github.com/grafana/grafana-plugin-sdk-go/data"
-	api "github.com/drpcorg/grafana-chotki-datasource/pkg/api"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -328,33 +328,51 @@ func (d *Datasource) executeRPC(ctx context.Context, qm *queryModel, opts queryE
 			return buildGetNodeCoreKeyFrame(resp.GetKey(), opts)
 		})
 
-	case methodListNodeCoreKeys:
+	case methodGetAuthSnapshot:
 		ownerID, err := getRequiredUUIDParam(qm.Params, "ownerId", "owner_id", "ownerID")
 		if err != nil {
 			return nil, 0, err
 		}
-		lastKeyID, hasLastKeyID, err := getOptionalUUIDParam(qm.Params, "lastKeyId", "last_key_id", "lastKeyID")
+		keyID, err := getRequiredUUIDParam(qm.Params, "keyId", "key_id", "keyID")
 		if err != nil {
 			return nil, 0, err
 		}
-		limit := opts.Limit
-		if overrideLimit, ok, err := getOptionalInt64Param(qm.Params, "limit"); err != nil {
-			return nil, 0, err
-		} else if ok {
-			limit = d.settings.ClampLimit(overrideLimit)
-		}
-
-		request := &api.ListNodeCoreKeysRequest{OwnerId: ownerID, Limit: limit}
-		if hasLastKeyID {
-			request.LastKeyId = lastKeyID
-		}
-
 		return d.callRead(ctx, qm.Method, func(callCtx context.Context) (*data.Frame, float64, error) {
-			resp, err := d.client.ListNodeCoreKeys(callCtx, request)
+			resp, err := d.client.GetAuthSnapshot(callCtx, &api.GetAuthSnapshotRequest{OwnerId: ownerID, KeyId: keyID})
 			if err != nil {
 				return nil, 0, err
 			}
-			return buildListNodeCoreKeysFrame(resp.GetKeys(), opts)
+			return buildGetAuthSnapshotFrame(resp.GetSnapshot(), opts)
+		})
+
+	case methodGetAuthSnapshots:
+		refs, err := parseAuthRefs(qm.Params)
+		if err != nil {
+			return nil, 0, err
+		}
+		if opts.Limit > 0 && int64(len(refs)) > opts.Limit {
+			refs = refs[:opts.Limit]
+		}
+		return d.callRead(ctx, qm.Method, func(callCtx context.Context) (*data.Frame, float64, error) {
+			resp, err := d.client.GetAuthSnapshots(callCtx, &api.GetAuthSnapshotsRequest{Refs: refs})
+			if err != nil {
+				return nil, 0, err
+			}
+			return buildGetAuthSnapshotsFrame(refs, resp.GetResults(), opts), 0, nil
+		})
+
+	case methodGetPackagePools:
+		ownerID, err := getRequiredUUIDParam(qm.Params, "ownerId", "owner_id", "ownerID")
+		if err != nil {
+			return nil, 0, err
+		}
+		return d.callRead(ctx, qm.Method, func(callCtx context.Context) (*data.Frame, float64, error) {
+			resp, err := d.client.GetPackagePools(callCtx, &api.GetPackagePoolsRequest{OwnerId: ownerID})
+			if err != nil {
+				return nil, 0, err
+			}
+			frame, statValue := buildGetPackagePoolsFrame(ownerID, resp.GetPools(), opts)
+			return frame, statValue, nil
 		})
 	}
 
@@ -458,7 +476,7 @@ func (d *Datasource) CheckHealth(ctx context.Context, _ *backend.CheckHealthRequ
 	healthCtx, cancel := context.WithTimeout(ctx, healthTimeout)
 	defer cancel()
 
-	_, err := d.client.GetAllOwnerIds(d.withAuth(healthCtx), &api.GetAllOwnerIdsRequest{})
+	_, err := d.client.BlockHeight(d.withAuth(healthCtx), &api.BlockHeighRequest{})
 	if err != nil {
 		return &backend.CheckHealthResult{Status: backend.HealthStatusError, Message: err.Error()}, nil
 	}
