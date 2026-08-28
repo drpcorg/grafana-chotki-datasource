@@ -24,13 +24,13 @@ jobs:
     env:
       GRAFANA_ACCESS_POLICY_TOKEN: ${{ secrets.GRAFANA_ACCESS_POLICY_TOKEN }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Setup Node.js environment
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dependencies
@@ -55,27 +55,27 @@ jobs:
 
       - name: Setup Go environment
         if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: actions/setup-go@v6
+        uses: actions/setup-go@v7
         with:
           go-version-file: go.mod
 
       - name: Lint backend
         if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: golangci/golangci-lint-action@1e7e51e771db61008b38414a730f564565cf7c20 # v9.2.0
+        uses: golangci/golangci-lint-action@ba0d7d2ec06a0ea1cb5fa41b2e4a3ab91d21278a # v9.3.0
         with:
           version: latest
           args: ./...
 
       - name: Build backend
         if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: magefile/mage-action@6f50bbb8ea47d56e62dee92392788acbc8192d0b # v3.1.0
+        uses: magefile/mage-action@a662bd8c29d8106879588cfff83b2faf6e6f59db # v4.0.0
         with:
           version: latest
           args: buildAll
 
       - name: Test backend
         if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: magefile/mage-action@6f50bbb8ea47d56e62dee92392788acbc8192d0b # v3.1.0
+        uses: magefile/mage-action@a662bd8c29d8106879588cfff83b2faf6e6f59db # v4.0.0
         with:
           version: latest
           args: test
@@ -141,13 +141,13 @@ jobs:
       matrix: ${{ steps.resolve-versions.outputs.matrix }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           persist-credentials: false
 
       - name: Resolve Grafana E2E versions
         id: resolve-versions
-        uses: grafana/plugin-actions/e2e-version@e2e-version/v1.2.1
+        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.0.2
 
   playwright-tests:
     needs: [resolve-versions, build]
@@ -163,7 +163,7 @@ jobs:
     name: e2e test ${{ matrix.GRAFANA_IMAGE.name }}@${{ matrix.GRAFANA_IMAGE.VERSION }}
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
 
@@ -179,9 +179,9 @@ jobs:
           chmod +x ./dist/gpx_*
 
       - name: Setup Node.js environment
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '24'
           cache: 'npm'
 
       - name: Install dev dependencies
@@ -193,7 +193,7 @@ jobs:
           ANONYMOUS_AUTH_ENABLED=false DEVELOPMENT=false GRAFANA_VERSION=${{ matrix.GRAFANA_IMAGE.VERSION }} GRAFANA_IMAGE=${{ matrix.GRAFANA_IMAGE.NAME }} docker compose up -d
 
       - name: Wait for grafana server
-        uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.2
+        uses: grafana/plugin-actions/wait-for-grafana@wait-for-grafana/v1.0.5
         with:
           url: http://localhost:3000/login
 
@@ -205,7 +205,7 @@ jobs:
         run: npm run e2e
 
       - name: Upload e2e test summary
-        uses: grafana/plugin-actions/playwright-gh-pages/upload-report-artifacts@upload-report-artifacts/v1.0.1
+        uses: grafana/plugin-actions/playwright-gh-pages/upload-report-artifacts@upload-report-artifacts/v1.0.2
         if: ${{ always() && !cancelled() }}
         with:
           upload-report: false
@@ -238,7 +238,7 @@ jobs:
     needs: [playwright-tests]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           persist-credentials: false
       - name: Publish report

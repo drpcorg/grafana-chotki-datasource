@@ -14,6 +14,25 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    ignore:
+      # eslint 10 is blocked: eslint-plugin-react has no eslint-10-compatible
+      # release, and @grafana/eslint-config 10 breaks the create-plugin scaffold
+      # (.config/eslint.config.mjs imports the removed flat.js export; stylistic
+      # plugin was renamed). Remove both once eslint-plugin-react supports
+      # eslint 10 AND @grafana/create-plugin updates the scaffold — see PR #67.
+      - dependency-name: "eslint"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "@grafana/eslint-config"
+        update-types: ["version-update:semver-major"]
+      # typescript 7 is blocked: no @typescript-eslint release accepts TS >=6.1
+      # (8.67.0 still peers typescript ">=4.8.4 <6.1.0", and there is no v9
+      # line), so npm ci fails on ERESOLVE before anything compiles. TS 7 also
+      # removed baseUrl, which the create-plugin-managed .config/tsconfig.json
+      # still sets (TS5102); ignoreDeprecations does not suppress a removed
+      # option. Remove once @typescript-eslint supports TS 7 AND
+      # @grafana/tsconfig drops baseUrl — see PR #76.
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
     groups:
       unit-test:
         patterns:
@@ -30,7 +49,10 @@ updates:
         patterns:
           - "@grafana/*"
         dependency-type: "production"
+        # Include majors so @grafana/* packages are always bumped together
+        # (a lone @grafana/data major PR mixes v12/v13 types — see #49)
         update-types:
+          - "major"
           - "minor"
           - "patch"
       react:

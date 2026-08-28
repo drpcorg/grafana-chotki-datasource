@@ -1,3 +1,9 @@
 {
-  "extends": "./.config/tsconfig.json"
+  "extends": "./.config/tsconfig.json",
+  "compilerOptions": {
+    // Silence TS 6.0 deprecation errors for options (baseUrl, downlevelIteration,
+    // moduleResolution: node10) inherited from Grafana's managed .config/tsconfig.json
+    // and @grafana/tsconfig. Remove once Grafana updates its shared config for TS 7.0.
+    "ignoreDeprecations": "6.0"
+  }
 }
