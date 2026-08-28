@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net"
+	"strings"
 	"testing"
 
 	"github.com/drpcorg/grafana-chotki-datasource/pkg/api"
@@ -17,8 +18,6 @@ import (
 type fakeAggregator struct {
 	api.UnimplementedAggregatorServiceServer
 
-	ownerID  []byte
-	keyID    []byte
 	blockHit bool
 }
 
@@ -74,7 +73,9 @@ func startFakeAggregator(t *testing.T) (*fakeAggregator, string) {
 	server := grpc.NewServer()
 	fake := &fakeAggregator{}
 	api.RegisterAggregatorServiceServer(server, fake)
-	go server.Serve(listener)
+	go func() {
+		_ = server.Serve(listener)
+	}()
 	t.Cleanup(server.Stop)
 
 	return fake, listener.Addr().String()
@@ -197,5 +198,22 @@ func TestQueryData_RejectsWriteMethods(t *testing.T) {
 	response := runQuery(t, ds, `{"mode":"rpc","method":"BillOwnerBalance","params":{}}`)
 	if response.Error == nil {
 		t.Fatalf("expected error for write method")
+	}
+}
+
+func TestQueryData_ListNodeCoreKeys_ExecutesRPC(t *testing.T) {
+	_, addr := startFakeAggregator(t)
+	ds := newTestDatasource(t, addr)
+	ownerID := uuid.New().String()
+
+	// The fake server does not implement ListNodeCoreKeys, so the RPC returns
+	// Unimplemented — but the query must get past parsing and reach the RPC
+	// (guards against the handler case silently disappearing again).
+	response := runQuery(t, ds, `{"mode":"rpc","method":"ListNodeCoreKeys","params":{"ownerId":"`+ownerID+`"}}`)
+	if response.Error == nil {
+		t.Fatalf("expected RPC-level error from unimplemented method")
+	}
+	if strings.Contains(response.Error.Error(), "not allowed") || strings.Contains(response.Error.Error(), "unsupported method") {
+		t.Fatalf("method should be allowed, got: %v", response.Error)
 	}
 }

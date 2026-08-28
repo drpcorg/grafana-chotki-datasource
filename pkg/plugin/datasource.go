@@ -328,6 +328,34 @@ func (d *Datasource) executeRPC(ctx context.Context, qm *queryModel, opts queryE
 			return buildGetNodeCoreKeyFrame(resp.GetKey(), opts)
 		})
 
+	case methodListNodeCoreKeys:
+		ownerID, err := getRequiredUUIDParam(qm.Params, "ownerId", "owner_id", "ownerID")
+		if err != nil {
+			return nil, 0, err
+		}
+		lastKeyID, hasLastKeyID, err := getOptionalUUIDParam(qm.Params, "lastKeyId", "last_key_id", "lastKeyID")
+		if err != nil {
+			return nil, 0, err
+		}
+		limit := opts.Limit
+		if overrideLimit, ok, err := getOptionalInt64Param(qm.Params, "limit"); err != nil {
+			return nil, 0, err
+		} else if ok {
+			limit = d.settings.ClampLimit(overrideLimit)
+		}
+
+		request := &api.ListNodeCoreKeysRequest{OwnerId: ownerID, Limit: limit}
+		if hasLastKeyID {
+			request.LastKeyId = lastKeyID
+		}
+
+		return d.callRead(ctx, qm.Method, func(callCtx context.Context) (*data.Frame, float64, error) {
+			resp, err := d.client.ListNodeCoreKeys(callCtx, request)
+			if err != nil {
+				return nil, 0, err
+			}
+			return buildListNodeCoreKeysFrame(resp.GetKeys(), opts)
+		})
 	case methodGetAuthSnapshot:
 		ownerID, err := getRequiredUUIDParam(qm.Params, "ownerId", "owner_id", "ownerID")
 		if err != nil {
