@@ -1,6 +1,6 @@
 {
   "name": "grafana-chotki-datasource",
-  "version": "1.0.6",
+  "version": "1.1.0",
   "scripts": {
     "build": "webpack -c ./.config/webpack/webpack.config.ts --env production",
     "dev": "webpack -w -c ./.config/webpack/webpack.config.ts --env development",
@@ -17,7 +17,7 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@grafana/eslint-config": "^9.0.0",
-    "@grafana/plugin-e2e": "^3.11.0",
+    "@grafana/plugin-e2e": "^3.11.1",
     "@grafana/tsconfig": "^2.2.0",
     "@playwright/test": "^1.60.0",
     "@stylistic/eslint-plugin-ts": "^4.4.0",

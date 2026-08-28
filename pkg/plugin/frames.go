@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/grafana/grafana-plugin-sdk-go/data"
 	api "github.com/drpcorg/grafana-chotki-datasource/pkg/api"
+	"github.com/grafana/grafana-plugin-sdk-go/data"
 )
 
 type keyRow struct {
@@ -110,6 +110,8 @@ func buildGetOwnerFrame(owner *api.Owner, opts queryExecOptions) (*data.Frame, f
 		data.NewField("created_at_unix", nil, []int64{createdAtUnix}),
 		data.NewField("node_core_api_token", nil, []string{owner.NodeCoreApiToken}),
 		data.NewField("addons_json", nil, []string{toJSON(owner.Addons)}),
+		data.NewField("discounts_json", nil, []string{toJSON(owner.Discounts)}),
+		data.NewField("billing_version", nil, []int64{owner.BillingVersion}),
 	)
 	return frame, float64(owner.ComputeUnitBalance), nil
 }
@@ -137,6 +139,7 @@ func buildGetFullOwnerFrame(owner *api.OwnerFull, opts queryExecOptions) (*data.
 		data.NewField("created_at_unix", nil, []int64{createdAtUnix}),
 		data.NewField("node_core_api_token", nil, []string{owner.NodeCoreApiToken}),
 		data.NewField("addons_json", nil, []string{toJSON(owner.Addons)}),
+		data.NewField("discounts_json", nil, []string{toJSON(owner.Discounts)}),
 	)
 	return frame, float64(owner.Balance), nil
 }
@@ -162,6 +165,7 @@ func buildGetOwnerMetadataFrame(metadata *api.OwnerMetadata, opts queryExecOptio
 		data.NewField("balance_low_critical", nil, []int64{metadata.BalanceLowCritical}),
 		data.NewField("discount_percent", nil, []int32{metadata.DiscountPercent}),
 		data.NewField("overdraft_limit", nil, []int64{metadata.OverdraftLimit}),
+		data.NewField("discounts_json", nil, []string{toJSON(metadata.Discounts)}),
 	)
 	return frame, float64(metadata.BalanceLowWarning), nil
 }
@@ -584,4 +588,166 @@ func buildListNodeCoreKeysFrame(keys []*api.NodeCoreKey, opts queryExecOptions) 
 	}
 	frame := buildNodeCoreKeyRowsFrame("list_node_core_keys", rows)
 	return frame, float64(len(rows)), nil
+}
+
+func buildGetAuthSnapshotFrame(snapshot *api.AuthSnapshot, opts queryExecOptions) (*data.Frame, float64, error) {
+	if snapshot == nil {
+		return nil, 0, fmt.Errorf("snapshot is empty")
+	}
+
+	ownerID := ""
+	if owner := snapshot.GetOwner(); owner != nil {
+		ownerID = formatID(owner.GetOwnerID(), opts.DecodeIDs)
+	}
+	keyID := ""
+	if key := snapshot.GetKey(); key != nil {
+		keyID = formatID(key.GetKeyId(), opts.DecodeIDs)
+	}
+
+	frame := data.NewFrame(
+		"get_auth_snapshot",
+		data.NewField("owner_id", nil, []string{ownerID}),
+		data.NewField("owner_total_cu", nil, []int64{snapshot.GetOwnerTotalCU()}),
+		data.NewField("owner_free_balance", nil, []int64{snapshot.GetOwnerFreeBalance()}),
+		data.NewField("key_id", nil, []string{keyID}),
+		data.NewField("key_daily_used_cu", nil, []int64{snapshot.GetKeyDailyUsedCU()}),
+		data.NewField("package_pools_json", nil, []string{packagePoolsJSON(snapshot.GetPackagePools())}),
+	)
+	return frame, float64(snapshot.GetKeyDailyUsedCU()), nil
+}
+
+func buildGetAuthSnapshotsFrame(refs []*api.AuthRef, results []*api.AuthSnapshotResult, opts queryExecOptions) *data.Frame {
+	rows := len(refs)
+	if len(results) > rows {
+		rows = len(results)
+	}
+
+	requestedOwnerIDs := make([]string, 0, rows)
+	requestedKeyIDs := make([]string, 0, rows)
+	errors := make([]string, 0, rows)
+	ownerIDs := make([]string, 0, rows)
+	ownerTotalCUs := make([]int64, 0, rows)
+	ownerFreeBalances := make([]int64, 0, rows)
+	keyIDs := make([]string, 0, rows)
+	keyDailyUsedCUs := make([]int64, 0, rows)
+	packagePools := make([]string, 0, rows)
+
+	for i := 0; i < rows; i++ {
+		refOwnerID, refKeyID := "", ""
+		if i < len(refs) && refs[i] != nil {
+			refOwnerID = formatID(refs[i].GetOwnerId(), opts.DecodeIDs)
+			refKeyID = formatID(refs[i].GetKeyId(), opts.DecodeIDs)
+		}
+		requestedOwnerIDs = append(requestedOwnerIDs, refOwnerID)
+		requestedKeyIDs = append(requestedKeyIDs, refKeyID)
+
+		var result *api.AuthSnapshotResult
+		if i < len(results) {
+			result = results[i]
+		}
+		if result == nil {
+			errors = append(errors, "")
+			ownerIDs = append(ownerIDs, "")
+			ownerTotalCUs = append(ownerTotalCUs, 0)
+			ownerFreeBalances = append(ownerFreeBalances, 0)
+			keyIDs = append(keyIDs, "")
+			keyDailyUsedCUs = append(keyDailyUsedCUs, 0)
+			packagePools = append(packagePools, "")
+			continue
+		}
+
+		errors = append(errors, result.GetError())
+		snapshot := result.GetSnapshot()
+		if snapshot == nil {
+			ownerIDs = append(ownerIDs, refOwnerID)
+			ownerTotalCUs = append(ownerTotalCUs, 0)
+			ownerFreeBalances = append(ownerFreeBalances, 0)
+			keyIDs = append(keyIDs, refKeyID)
+			keyDailyUsedCUs = append(keyDailyUsedCUs, 0)
+			packagePools = append(packagePools, "")
+			continue
+		}
+
+		snapshotOwnerID := refOwnerID
+		if owner := snapshot.GetOwner(); owner != nil {
+			snapshotOwnerID = formatID(owner.GetOwnerID(), opts.DecodeIDs)
+		}
+		snapshotKeyID := refKeyID
+		if key := snapshot.GetKey(); key != nil {
+			snapshotKeyID = formatID(key.GetKeyId(), opts.DecodeIDs)
+		}
+
+		ownerIDs = append(ownerIDs, snapshotOwnerID)
+		ownerTotalCUs = append(ownerTotalCUs, snapshot.GetOwnerTotalCU())
+		ownerFreeBalances = append(ownerFreeBalances, snapshot.GetOwnerFreeBalance())
+		keyIDs = append(keyIDs, snapshotKeyID)
+		keyDailyUsedCUs = append(keyDailyUsedCUs, snapshot.GetKeyDailyUsedCU())
+		packagePools = append(packagePools, packagePoolsJSON(snapshot.GetPackagePools()))
+	}
+
+	return data.NewFrame(
+		"get_auth_snapshots",
+		data.NewField("requested_owner_id", nil, requestedOwnerIDs),
+		data.NewField("requested_key_id", nil, requestedKeyIDs),
+		data.NewField("error", nil, errors),
+		data.NewField("owner_id", nil, ownerIDs),
+		data.NewField("owner_total_cu", nil, ownerTotalCUs),
+		data.NewField("owner_free_balance", nil, ownerFreeBalances),
+		data.NewField("key_id", nil, keyIDs),
+		data.NewField("key_daily_used_cu", nil, keyDailyUsedCUs),
+		data.NewField("package_pools_json", nil, packagePools),
+	)
+}
+
+func buildGetPackagePoolsFrame(ownerID []byte, pools []*api.PackagePoolSnapshot, opts queryExecOptions) (*data.Frame, float64) {
+	if opts.Limit > 0 && int64(len(pools)) > opts.Limit {
+		pools = pools[:opts.Limit]
+	}
+
+	ownerIDStr := formatID(ownerID, opts.DecodeIDs)
+	ownerIDs := make([]string, 0, len(pools))
+	tags := make([]string, 0, len(pools))
+	credited := make([]int64, 0, len(pools))
+	spent := make([]int64, 0, len(pools))
+	remaining := make([]int64, 0, len(pools))
+	periodEnds := make([]string, 0, len(pools))
+	addonIDs := make([]int64, 0, len(pools))
+	subscriptionIDs := make([]int64, 0, len(pools))
+
+	var totalRemaining int64
+	for _, pool := range pools {
+		if pool == nil {
+			continue
+		}
+		poolRemaining := pool.GetCredited() - pool.GetSpent()
+		ownerIDs = append(ownerIDs, ownerIDStr)
+		tags = append(tags, pool.GetTag())
+		credited = append(credited, pool.GetCredited())
+		spent = append(spent, pool.GetSpent())
+		remaining = append(remaining, poolRemaining)
+		periodEnds = append(periodEnds, pool.GetPeriodEnd())
+		addonIDs = append(addonIDs, pool.GetAddonId())
+		subscriptionIDs = append(subscriptionIDs, pool.GetSubscriptionId())
+		totalRemaining += poolRemaining
+	}
+
+	frame := data.NewFrame(
+		"get_package_pools",
+		data.NewField("owner_id", nil, ownerIDs),
+		data.NewField("tag", nil, tags),
+		data.NewField("credited", nil, credited),
+		data.NewField("spent", nil, spent),
+		data.NewField("remaining", nil, remaining),
+		data.NewField("period_end", nil, periodEnds),
+		data.NewField("addon_id", nil, addonIDs),
+		data.NewField("subscription_id", nil, subscriptionIDs),
+	)
+	return frame, float64(totalRemaining)
+}
+
+func packagePoolsJSON(pools []*api.PackagePoolSnapshot) string {
+	if len(pools) == 0 {
+		return ""
+	}
+	return toJSON(pools)
 }

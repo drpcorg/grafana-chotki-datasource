@@ -37,6 +37,9 @@ const methodOptions: Array<SelectableValue<RpcMethod>> = [
   { value: 'GetAllOwnerIds', label: 'GetAllOwnerIds' },
   { value: 'GetNodeCoreKey', label: 'GetNodeCoreKey' },
   { value: 'ListNodeCoreKeys', label: 'ListNodeCoreKeys' },
+  { value: 'GetAuthSnapshot', label: 'GetAuthSnapshot' },
+  { value: 'GetAuthSnapshots', label: 'GetAuthSnapshots' },
+  { value: 'GetPackagePools', label: 'GetPackagePools' },
 ];
 
 const formatOptions: Array<SelectableValue<'table' | 'stat'>> = [
@@ -73,6 +76,20 @@ const methodParams: Record<RpcMethod, ParamSchema[]> = {
     { name: 'lastKeyId', label: 'lastKeyId', type: 'string', placeholder: 'uuid (optional)' },
     { name: 'limit', label: 'limit', type: 'number' },
   ],
+  GetAuthSnapshot: [
+    { name: 'ownerId', label: 'ownerId', type: 'string', required: true, placeholder: 'uuid' },
+    { name: 'keyId', label: 'keyId', type: 'string', required: true, placeholder: 'uuid' },
+  ],
+  GetAuthSnapshots: [
+    {
+      name: 'refs',
+      label: 'refs',
+      type: 'string',
+      required: true,
+      placeholder: '[{"ownerId":"uuid","keyId":"uuid"}] or ownerId:keyId,...',
+    },
+  ],
+  GetPackagePools: [{ name: 'ownerId', label: 'ownerId', type: 'string', required: true, placeholder: 'uuid' }],
 };
 
 function buildRawQuery(method?: RpcMethod, params?: Record<string, QueryParamValue>, options?: ChotkiQuery['options']): string {

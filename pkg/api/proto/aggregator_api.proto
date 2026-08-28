@@ -1,0 +1,923 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "common.proto";
+
+package aggregator_api;
+
+service AggregatorService {
+  // node statuses
+  rpc BlockHeight(BlockHeighRequest) returns (BlockHeightResponse) {}
+  rpc TxHeight(TxHeightRequest) returns (TxHeightResponse) {}
+  rpc Finalization(FinalizationRequest) returns (emerald.FinalizationData) {}
+  rpc SubscribeNodeStatus(SubscribeNodeStatusRequest)
+      returns (stream SubscribeNodeStatusResponse) {}
+
+  // blocks stream
+  rpc StreamChainHeads(StreamChainHeadsRequest)
+      returns (stream ChainHeadEvent) {}
+
+  // Owners
+  rpc CreateOwner(CreateOwnerRequest) returns (CreateOwnerResponse) {}
+  rpc GetOwner(GetOwnerRequest) returns (GetOwnerResponse) {}
+  rpc GetFullOwner(GetFullOwnerRequest) returns (GetFullOwnerResponse) {}
+  // GetAuthSnapshot returns owner+key static fields and the three CRDT
+  // counters (TotalCU, FreeBalance, DailyUsedCU) in a single chotki StartRead
+  // transaction. Used by post-paid auth-cache miss to seed the in-process
+  // cache with one round-trip; CheckBalance then reads from the cache only.
+  rpc GetAuthSnapshot(GetAuthSnapshotRequest) returns (GetAuthSnapshotResponse) {}
+  // GetAuthSnapshots resolves many owner+key pairs under one chotki StartRead
+  // (one snapshot for the whole batch). Per-ref errors ride in the response.
+  rpc GetAuthSnapshots(GetAuthSnapshotsRequest) returns (GetAuthSnapshotsResponse) {}
+  rpc GetOwnersWithBalance(GetOwnersWithBalanceRequest) returns (GetOwnersWithBalanceResponse) {}
+  rpc GetOwnerHits(GetOwnerHitsRequest) returns (GetOwnerHitsResponse) {}
+  rpc GetOwnerMetadata(GetOwnerMetadataRequest)
+      returns (GetOwnerMetadataResponse) {}
+  rpc SetBalanceNotificationThresholds(SetBalanceNotificationThresholdsRequest)
+      returns (SetBalanceNotificationThresholdsResponse) {}
+  rpc SetMev(SetMevRequest) returns (SetMevResponse) {}
+  rpc SetDayLimit(SetDayLimitRequest) returns (SetDayLimitResponse) {}
+  rpc SetDiscount(SetDiscountRequest) returns (SetDiscountResponse) {}
+  rpc SetOverdraft(SetOverdraftRequest) returns (SetOverdraftResponse) {}
+  rpc SetOwnerBillingVersion(SetOwnerBillingVersionRequest) returns (SetOwnerBillingVersionResponse) {}
+  rpc IncrementOwnerBalance(IncrementOwnerBalanceRequest) returns (IncrementOwnerBalanceResponse) {}
+  rpc SetOwnerBalance(SetOwnerBalanceRequest) returns (SetOwnerBalanceResponse) {}
+  rpc ResetOwnerFreeBalance(ResetOwnerFreeBalanceRequest) returns (ResetOwnerFreeBalanceResponse) {}
+  rpc IncrementOwnerFreeBalance(IncrementOwnerFreeBalanceRequest) returns (IncrementOwnerFreeBalanceResponse) {}
+  rpc SpendOwnerFreeBalance(SpendOwnerFreeBalanceRequest) returns (SpendOwnerFreeBalanceResponse) {}
+  rpc SpendOwnerBalance(SpendOwnerBalanceRequest) returns (SpendOwnerBalanceResponse) {}
+  // BillOwnerBalance unconditionally charges the owner+key for `amount` CU.
+  // Unlike SpendOwnerBalance it does NOT check balance, overdraft or day
+  // limit — the caller is expected to have already gated the request via
+  // CheckBalance. Used by V3 post-request billing where the request is
+  // already served and must always be billed.
+  rpc BillOwnerBalance(BillOwnerBalanceRequest) returns (BillOwnerBalanceResponse) {}
+  // BillOwnerFreeBalance unconditionally decrements the owner free balance
+  // by `amount`. Going negative is allowed.
+  rpc BillOwnerFreeBalance(BillOwnerFreeBalanceRequest) returns (BillOwnerFreeBalanceResponse) {}
+  rpc SetOwnerTotalCU(SetOwnerTotalCURequest) returns (SetOwnerTotalCUResponse) {}
+  rpc IncrementOwnerTotalCU(IncrementOwnerTotalCURequest) returns (IncrementOwnerTotalCUResponse) {}
+  rpc SystemSetOwnerUid(SystemSetOwnerUidRequest) returns (SystemSetOwnerUidResponse) {}
+  rpc SetNodeCoreApiToken(SetNodeCoreApiTokenRequest) returns (SetNodeCoreApiTokenResponse) {}
+  rpc SetOwnerAddon(SetOwnerAddonRequest) returns (SetOwnerAddonResponse) {}
+  rpc RemoveOwnerAddon(RemoveOwnerAddonRequest) returns (RemoveOwnerAddonResponse) {}
+
+  // Package billing pools (prepaid period-scoped CU pools).
+  // CreatePackagePool opens a pool for (owner, tag). With carryOver=true and
+  // an existing pool, the volume is credited into the same pool and the
+  // period is extended; otherwise a fresh pool replaces the mapping.
+  rpc CreatePackagePool(CreatePackagePoolRequest) returns (CreatePackagePoolResponse) {}
+  // SpendPackagePool unconditionally increments the pool Spent counter by the
+  // exact amount (post-response billing rail, mirrors BillOwnerBalance
+  // semantics). Spent may exceed Credited: charges settle all-or-nothing, so
+  // the crossing charge lands on the pool in full (light overdraft) and the
+  // rollover job deducts it from the next period's pool.
+  rpc SpendPackagePool(SpendPackagePoolRequest) returns (SpendPackagePoolResponse) {}
+  // BurnPackagePool zeroes the pool remainder at period end. Idempotent.
+  rpc BurnPackagePool(BurnPackagePoolRequest) returns (BurnPackagePoolResponse) {}
+  // RemovePackagePool unmaps the pool from the owner (package disabled).
+  rpc RemovePackagePool(RemovePackagePoolRequest) returns (RemovePackagePoolResponse) {}
+  rpc GetPackagePools(GetPackagePoolsRequest) returns (GetPackagePoolsResponse) {}
+
+  // Keys
+  rpc GetKey(GetKeyRequest) returns (GetKeyResponse) {}
+  rpc DeleteKey(DeleteKeyRequest) returns (DeleteKeyResponse) {}
+  rpc IncrementKey(IncrementKeyRequest) returns (IncrementKeyResponse) {}
+  rpc GetKeyHits(GetKeyHitsRequest) returns (GetKeyHitsResponse) {}
+  rpc ListKeys(ListKeysRequest) returns (ListKeysResponse) {}
+  rpc CreateOrUpdateKey(CreateOrUpdateKeyRequest)
+      returns (CreateOrUpdateKeyResponse) {}
+  rpc CreateKey(CreateKeyRequest) returns (CreateKeyResponse) {}
+  rpc SetName(SetNameRequest) returns (SetNameResponse) {}
+  rpc SetDescription(SetDescriptionRequest) returns (SetDescriptionResponse) {}
+  rpc SetActive(SetActiveRequest) returns (SetActiveResponse) {}
+  rpc SetArchived(SetArchivedRequest) returns (SetArchivedResponse) {}
+  rpc SetCorsOrigins(SetCorsOriginsRequest) returns (SetCorsOriginsResponse) {}
+  rpc SetProviders(SetProvidersRequest) returns (SetProvidersResponse) {}
+  rpc SetIpWhitelist(SetIpWhitelistRequest) returns (SetIpWhitelistResponse) {}
+  rpc SetFallback(SetFallbackRequest) returns (SetFallbackResponse) {}
+  rpc AddPubKey(AddPubKeyRequest) returns (AddPubKeyResponse) {}
+  rpc DropPubKey(DropPubKeyRequest) returns (DropPubKeyResponse) {}
+  rpc SetJwtEnabled(SetJwtEnabledRequest) returns (SetJwtEnabledResponse) {}
+  rpc SetRateLimitPerMinute(SetRateLimitPerMinuteRequest) returns (SetRateLimitPerMinuteResponse) {}
+  rpc SetMethodsBlacklist(SetMethodsBlacklistRequest) returns (SetMethodsBlacklistResponse) {}
+  rpc SetMethodsWhitelist(SetMethodsWhitelistRequest) returns (SetMethodsWhitelistResponse) {}
+  rpc SetChainsWhitelist(SetChainsWhitelistUpdateRequest) returns (SetChainsWhitelistResponse) {}
+  rpc SetContractWhitelist(SetContractWhitelistRequest) returns (SetContractWhitelistResponse) {}
+  rpc SetTags(SetTagsRequest) returns (SetTagsResponse) {}
+  rpc ResetCounters(ResetCountersRequest) returns (ResetCountersResponse) {}
+  rpc GetAllOwnerIds(GetAllOwnerIdsRequest) returns (GetAllOwnerIdsResponse) {}
+  rpc SetEnableTraceID(SetEnableTraceIDRequest) returns (SetEnableTraceIDResponse) {}
+  rpc SetClientSpec(SetClientSpecRequest) returns (SetClientSpecResponse) {}
+  rpc SetBalanceNotificationOptions(SetBalanceNotificationOptionsRequest) returns (SetBalanceNotificationOptionsResponse) {}
+
+  // NodeCore
+  rpc CreateNodeCoreKey(CreateNodeCoreKeyRequest) returns (CreateNodeCoreKeyResponse) {}
+  rpc GetNodeCoreKey(GetNodeCoreKeyRequest) returns (GetNodeCoreKeyResponse) {}
+  rpc ListNodeCoreKeys(ListNodeCoreKeysRequest) returns (ListNodeCoreKeysResponse) {}
+  rpc PatchNodeCoreKey(PatchNodeCoreKeyRequest) returns (PatchNodeCoreKeyResponse) {}
+  rpc DeleteNodeCoreKey(DeleteNodeCoreKeyRequest) returns (DeleteNodeCoreKeyResponse) {}
+}
+
+message DeleteNodeCoreKeyRequest {
+  bytes keyId = 1;
+}
+
+message DeleteNodeCoreKeyResponse {
+
+}
+
+message SetNodeCoreApiTokenRequest {
+  bytes ownerId = 1;
+  string token = 2;
+}
+
+message SetNodeCoreApiTokenResponse {
+
+}
+
+message PatchNodeCoreKeyRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  PatchParam patchParam = 3;
+}
+
+message PatchParam {
+  oneof patchParam {
+    PatchName patchName = 1;
+    PatchDescription patchDescription = 2;
+    PatchStatus patchStatus = 3;
+    PatchIpWhitelist patchIpWhitelist = 4;
+    PatchContractWhitelist patchContractWhitelist = 5;
+    PatchTags patchTags = 6;
+    PatchMethodWhitelist patchMethodWhitelist = 7;
+    PatchMethodBlacklist patchMethodBlacklist = 8;
+    PatchCorsOrigins patchCorsOrigins = 9;
+  }
+}
+
+message PatchCorsOrigins {
+  repeated string corsOrigins = 1;
+}
+
+message PatchName {
+  string name = 1;
+}
+
+message PatchDescription {
+  string description = 1;
+}
+
+message PatchStatus {
+  bool status = 1;
+}
+
+message PatchIpWhitelist {
+  repeated string ips = 1;
+}
+
+message PatchContractWhitelist {
+  repeated string contracts = 1;
+}
+
+message PatchMethodWhitelist {
+  repeated string methods = 1;
+}
+
+message PatchMethodBlacklist {
+  repeated string methods = 1;
+}
+
+message PatchTags {
+  repeated int32 tags = 1;
+}
+
+message PatchNodeCoreKeyResponse {
+}
+
+message ListNodeCoreKeysRequest {
+  bytes ownerId = 1;
+  bytes lastKeyId = 2;
+  int64 limit = 3;
+}
+
+message ListNodeCoreKeysResponse {
+  repeated NodeCoreKey keys = 1;
+}
+
+message CreateNodeCoreKeyRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  string name = 3;
+  bool status = 4;
+  google.protobuf.Timestamp updatedAt = 5;
+  string description = 6;
+}
+
+message CreateNodeCoreKeyResponse {
+}
+
+message GetNodeCoreKeyRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+}
+
+message GetNodeCoreKeyResponse {
+  NodeCoreKey key = 1;
+}
+
+message NodeCoreKey {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  string name = 3;
+  bool status = 4;
+  google.protobuf.Timestamp updatedAt = 5;
+  string description = 6;
+  repeated string ipWhitelist = 7;
+  repeated string contractWhitelist = 8;
+  repeated string methodWhitelist = 9;
+  repeated string methodBlacklist = 10;
+  repeated int32 tags = 11;
+  repeated string corsOrigins = 12;
+}
+
+enum SpendingResult {
+  SPENDING_RESULT_SUCCESS = 0;
+  SPENDING_RESULT_NOT_ENOUGH_BALANCE = 1;
+  SPENDING_RESULT_KEY_LIMIT_EXCEEDED = 2;
+  SPENDING_RESULT_ERROR = 3;
+}
+
+message SpendOwnerBalanceRequest {
+  bytes ownerId = 1;
+  bytes keyId = 2;
+  int64 amount = 3;
+}
+message SpendOwnerBalanceResponse {
+  SpendingResult result = 1;
+  int64 totalOwnerCU = 2;
+  int64 totalKeyCU = 3;
+}
+
+message SystemSetOwnerUidRequest {
+  bytes ownerId = 1;
+  bytes newOwnerId = 2;
+}
+message SystemSetOwnerUidResponse {}
+
+message SpendOwnerFreeBalanceRequest {
+  bytes ownerId = 1;
+  int64 amount = 2;
+}
+message SpendOwnerFreeBalanceResponse {
+  bool result = 1;
+  int64 balance = 2;
+}
+
+message BillOwnerBalanceRequest {
+  bytes ownerId = 1;
+  bytes keyId = 2;
+  int64 amount = 3;
+}
+message BillOwnerBalanceResponse {
+  int64 totalOwnerCU = 1;
+  int64 dailyKeyCU = 2;
+}
+
+message BillOwnerFreeBalanceRequest {
+  bytes ownerId = 1;
+  int64 amount = 2;
+}
+message BillOwnerFreeBalanceResponse {
+  int64 balance = 1;
+}
+
+message CreateKeyRequest {
+  Key key = 1;
+}
+message CreateKeyResponse {}
+
+message CreateOwnerRequest {
+  bytes ownerId = 1;
+  // billingVersion the owner is created with. Absent/0 keeps the legacy
+  // defaults (welcome FreeBalance grant); >= 1 opts the new owner into the
+  // tier system and suppresses the welcome grant. The caller (keymanager)
+  // owns this policy; chotki only records the decision.
+  int64 billingVersion = 2;
+}
+message CreateOwnerResponse {}
+
+message ResetCountersRequest {}
+message ResetCountersResponse {}
+
+message FinalizationRequest {
+  emerald.ChainRef chain = 1;
+  emerald.FinalizationType type = 2;
+}
+
+message BlockHeighRequest {
+  emerald.ChainRef chain = 1;
+  string hash = 2;
+}
+
+message BlockHeightResponse {
+  bool found = 1;
+  uint64 height = 2;
+}
+
+message SubscribeNodeStatusRequest {string subscription_id = 1;}
+
+message SubscribeNodeStatusResponse {
+  string provider_id = 1;
+  Region region = 2;
+  int32 provider_index = 7;
+  emerald.ChainRef chain = 3;
+  NodeDescription description = 4;
+  NodeStatus status = 5;
+  bool new_chain_head = 6;
+}
+
+message Timings {
+  TimingType name = 1;
+  uint64 time = 2;
+}
+
+enum TimingType {
+  TIMING_TYPE_UNDEFINED = 0;
+  TIMING_TYPE_CREATED = 1;
+  TIMING_TYPE_RECIVED_FROM_NODE = 2;
+  TIMING_TYPE_SENT_TO_AGGREGATOR = 3;
+  TIMING_TYPE_RECIVED_FROM_PROVIDER = 4;
+  TIMING_TYPE_SENT_TO_PROXY = 5;
+  TIMING_TYPE_RECIVED_FROM_AGGREGATOR = 6;
+  TIMING_TYPE_APPLIED_ON_PROXY = 7;
+}
+
+message NodeDescription {
+  repeated Capabilities capabilities = 1;
+  repeated string supported_methods = 2;
+  repeated string supported_subscriptions = 3;
+  BuildInfo node_build_info = 4;
+  repeated LowerBoundCoeff lower_bounds = 5;
+  repeated emerald.FinalizationData finalizations = 6;
+}
+
+message NodeStatus {
+  uint64 current_height = 1;
+  emerald.AvailabilityEnum availability = 2;
+  uint64 slot = 3;
+  uint64 current_lower_height = 4 [deprecated = true];
+  uint64 current_lower_slot = 5 [deprecated = true];
+  uint64 current_lower_data_timestamp = 6 [deprecated = true];
+  double state_remove_speed = 7 [deprecated = true];
+  double slot_remove_speed = 8 [deprecated = true];
+  repeated LowerBoundCoeff lower_bounds = 9 [deprecated = true];
+  repeated emerald.FinalizationData finalizations = 10 [deprecated = true];
+  repeated Timings timings = 11;
+}
+
+enum LowerBoundType {
+  LOWER_BOUND_UNSPECIFIED = 0;
+  LOWER_BOUND_SLOT = 1;
+  LOWER_BOUND_STATE = 2;
+  LOWER_BOUND_BLOCK = 3;
+  LOWER_BOUND_TX = 4;
+  LOWER_BOUND_LOGS = 5;
+  LOWER_BOUND_TRACE = 6;
+  LOWER_BOUND_PROOF = 7;
+  LOWER_BOUND_BLOB = 8;
+  LOWER_BOUND_EPOCH = 9;
+  LOWER_BOUND_RECEIPTS = 10;
+}
+
+message LowerBoundCoeff {
+  double k = 1;
+  double b = 2;
+  LowerBoundType key = 3;
+}
+
+message BuildInfo {string version = 1;}
+
+message Capabilities {
+  bool has_archive = 1;
+  bool has_long_range = 2;
+  bool has_extra_gas = 3;
+  bool has_pre_nitro_redirect = 4;
+  bool has_pre_bedrock_redirect = 5;
+  string client = 6;
+  string clientVersion = 7;
+  bool has_flashblocks = 8;
+  bool has_include_hl_native_tx = 9;
+  bool has_exclude_hl_native_tx = 10;
+  bool has_secure_signed_support = 11;
+  bool has_hl_all_info = 12;
+  bool has_hl_partial_info = 13;
+}
+
+enum Region {
+  UNKNOWN_REGION = 0;
+  EUROPE_WEST = 1;
+  US_CENTRAL = 2;
+  ASIA_SOUTH_EAST = 3;
+  US_EAST = 4;
+  SA_EAST = 5;
+  ASIA_NORTH_EAST = 7;
+  US_WEST = 8;
+  EUROPE_NORTH_WEST = 9;
+}
+
+message Owner {
+  bytes OwnerID = 1;
+  int64 ComputeUnitBalance = 2;
+  int64 Tier = 3;
+  bool Special = 4;
+  int32 DiscountPercent = 5;
+  int64 OverdraftLimit = 6;
+  int64 FreeComputeUnitBalance = 7;
+  google.protobuf.Timestamp CreatedAt = 8;
+  string NodeCoreApiToken = 9;
+  map<string, string> Addons = 10;
+  map<string, int32> Discounts = 11;
+  // BillingVersion: 0 = legacy (grandfathered), >= 1 = new tier system.
+  // PlanClass/PlanTag/PlanLimits are NOT transported: they are derived from
+  // this field plus Addons metadata on each side (data.Owner.DerivePlan).
+  int64 BillingVersion = 12;
+}
+
+message OwnerFull {
+  bytes OwnerId = 1;
+  int64 Balance = 2;
+  int64 BalanceLowWarn = 3;
+  int64 BalanceLowCrit = 4;
+  int32 DiscountPercent = 5;
+  int64 OverdraftLimit = 6;
+  int32 Tier = 7;
+  int64 TotalSpent = 8;
+  int64 FreeComputeUnitBalance = 9;
+  map<string, string> Addons = 10;
+  google.protobuf.Timestamp CreatedAt = 11;
+  string NodeCoreApiToken = 12;
+  map<string, int32> Discounts = 13;
+}
+
+message OwnerMetadata {
+  bytes OwnerId = 1;
+  int64 BalanceLowWarning = 2;
+  int64 BalanceLowCritical = 3;
+  int32 DiscountPercent = 4;
+  int64 OverdraftLimit = 5;
+  map<string, int32> Discounts = 6;
+}
+
+message PublicKey {
+  string name = 1;
+  bytes bytes = 2;
+}
+
+message Key {
+  bytes KeyId = 1;
+  bytes OwnerId = 2;
+  string Name = 3;
+  bool Status = 4;
+  google.protobuf.Timestamp UpdatedAt = 5;
+
+  string ApiKey = 6;
+  int64 RateLimit = 7;
+  repeated string IpWhitelist = 8;
+  repeated string Providers = 9;
+  repeated string CorsOrigins = 10;
+  bool JwtEnabled = 11;
+  repeated PublicKey JwtPublicKeys = 12;
+  bool FallbackEnabled = 13;
+  repeated string FallbackProviders = 14;
+  bool MevEnabled = 15;
+  repeated string MevProviders = 16;
+  bool MevFallback = 17;
+
+  int64 ComputeUnitDayLimit = 18;
+  repeated string MethodBlacklist = 19;
+  repeated string ContractWhiteList = 20;
+  bool Archived = 21;
+  string Description = 22;
+  repeated int32 Tags = 23;
+  repeated string MethodWhitelist = 24;
+  repeated int32 ChainsWhitelist = 25;
+  bool EnableTraceID = 26;
+  repeated int32 BalanceNotificationOptions = 27;
+  string ClientSpec = 28; // JSON array of client routing rules, see protocol.Client format
+  int32 MevMode = 29; // 0=unset, 1=enabled, 2=disabled; takes precedence over MevEnabled
+}
+
+// ChotkiDB public API
+message GetOwnerRequest {bytes ownerId = 1;}
+message GetOwnerResponse {Owner owner = 1;}
+message GetAllOwnerIdsRequest {}
+message GetAllOwnerIdsResponse { repeated bytes ownerIds = 1; }
+message GetOwnerHitsRequest {bytes ownerId = 1;}
+message GetOwnerHitsResponse {int64 hits = 1;}
+message GetFullOwnerRequest {
+  bytes ownerId = 1;
+  bool loadBalance = 2;
+}
+message GetFullOwnerResponse { OwnerFull owner = 1; }
+
+// AuthSnapshot is the consistent point-in-time view consumed by post-paid
+// CheckBalance. owner / key fields are nil when the corresponding object is
+// not found (so the client can treat that as a clean "not found" without
+// relying on gRPC error sentinels). The three counters are read inside the
+// same StartRead transaction as the static fields.
+message AuthSnapshot {
+  Owner owner = 1;
+  Key   key   = 2;
+  int64 ownerTotalCU     = 3;
+  int64 ownerFreeBalance = 4;
+  int64 keyDailyUsedCU   = 5;
+  repeated PackagePoolSnapshot packagePools = 6;
+}
+
+// PackagePoolSnapshot is a point-in-time view of a prepaid package pool.
+// Remaining = credited - spent (floored at 0 by consumers).
+message PackagePoolSnapshot {
+  string tag       = 1;
+  int64  credited  = 2;
+  int64  spent     = 3;
+  string periodEnd = 4; // RFC3339
+  // Debug-only refs to the addon schema and tier that opened the pool.
+  int64  addonId        = 5;
+  int64  subscriptionId = 6;
+}
+
+message CreatePackagePoolRequest {
+  bytes  owner_id    = 1;
+  string tag         = 2;
+  int64  credited_cu = 3;
+  string period_end  = 4; // RFC3339
+  bool   carry_over  = 5;
+  // Debug-only refs to the addon schema and tier opening/renewing the pool.
+  int64  addon_id        = 6;
+  int64  subscription_id = 7;
+}
+message CreatePackagePoolResponse {}
+
+message SpendPackagePoolRequest {
+  bytes  owner_id = 1;
+  string tag      = 2;
+  int64  amount   = 3;
+  // Optional: when set, Key.DailyUsedCU is incremented by `amount` so that
+  // pool-covered traffic still counts against the per-key day limit.
+  bytes  key_id   = 4;
+}
+message SpendPackagePoolResponse {
+  int64 credited = 1;
+  int64 spent    = 2;
+  // Post-spend Key.DailyUsedCU (0 when key_id was not set or the key
+  // increment failed best-effort).
+  int64 keyDailyUsedCU = 3;
+}
+
+message BurnPackagePoolRequest {
+  bytes  owner_id = 1;
+  string tag      = 2;
+}
+message BurnPackagePoolResponse {
+  int64 burned_cu = 1;
+}
+
+message RemovePackagePoolRequest {
+  bytes  owner_id = 1;
+  string tag      = 2;
+}
+message RemovePackagePoolResponse {}
+
+message GetPackagePoolsRequest {
+  bytes owner_id = 1;
+}
+message GetPackagePoolsResponse {
+  repeated PackagePoolSnapshot pools = 1;
+}
+message GetAuthSnapshotRequest  { bytes ownerId = 1; bytes keyId = 2; }
+message GetAuthSnapshotResponse { AuthSnapshot snapshot = 1; }
+
+// AuthRef is one owner+key pair to resolve in a GetAuthSnapshots batch.
+message AuthRef { bytes ownerId = 1; bytes keyId = 2; }
+message GetAuthSnapshotsRequest { repeated AuthRef refs = 1; }
+
+// AuthSnapshotResult is the per-ref outcome; snapshot is unset and error is set
+// (e.g. "not found") when that ref fails, so one bad ref never fails the batch.
+message AuthSnapshotResult {
+  AuthSnapshot snapshot = 1;
+  string error = 2;
+}
+message GetAuthSnapshotsResponse { repeated AuthSnapshotResult results = 1; }
+message GetOwnerMetadataRequest {bytes ownerId = 1;}
+message GetOwnerMetadataResponse {OwnerMetadata metadata = 1;}
+
+message IncrementOwnerBalanceRequest {
+  bytes owner_id = 1;
+  int64 amount = 2;
+}
+message IncrementOwnerBalanceResponse {
+  int64 Balance = 1;
+}
+
+message IncrementOwnerFreeBalanceRequest {
+  bytes owner_id = 1;
+  int64 amount = 2;
+}
+message IncrementOwnerFreeBalanceResponse {
+  int64 Balance = 1;
+}
+
+message ResetOwnerFreeBalanceRequest {
+  google.protobuf.Timestamp now = 1;
+}
+message ResetOwnerFreeBalanceResponse {}
+
+message SetOwnerTotalCURequest {
+  bytes owner_id = 1;
+  int64 total_cu = 2;
+}
+message SetOwnerTotalCUResponse {}
+
+message IncrementOwnerTotalCURequest {
+  bytes owner_id = 1;
+  int64 amount = 2;
+}
+message IncrementOwnerTotalCUResponse {
+  int64 total_cu = 1;
+}
+
+message SetOwnerBalanceRequest {
+  bytes owner_id = 1;
+  int64 balance = 2;
+}
+message SetOwnerBalanceResponse {}
+
+
+message SetBalanceNotificationThresholdsRequest {
+  bytes ownerId = 1;
+  int64 warning = 2;
+  int64 critical = 3;
+}
+message SetBalanceNotificationThresholdsResponse {}
+
+message SetMevRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated string mevProviders = 3;
+  bool enabled = 4;
+}
+message SetMevResponse {}
+
+message SetDayLimitRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  int64 dayLimit = 3;
+}
+message SetDayLimitResponse {}
+
+message SetDiscountRequest {
+  bytes ownerId = 1;
+  int32 discount = 2;
+  string discount_type = 3; // "default", "lambda", ... (empty = "default")
+}
+message SetDiscountResponse {}
+
+message SetOverdraftRequest {
+  bytes ownerId = 1;
+  int64 overdraftLimit = 2;
+}
+message SetOverdraftResponse {}
+
+message SetOwnerBillingVersionRequest {
+  bytes ownerId = 1;
+  int64 billingVersion = 2;
+}
+message SetOwnerBillingVersionResponse {}
+
+message GetKeyRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+}
+message GetKeyResponse {Key key = 1;}
+
+message DeleteKeyRequest {bytes keyId = 1;}
+message DeleteKeyResponse {}
+
+message IncrementKeyRequest {
+  bytes owner_id = 1;
+  bytes key_id = 2;
+  int64 cost = 3;
+}
+message IncrementKeyResponse {
+  int64 TotalCu = 1;
+}
+
+message GetKeyHitsRequest {bytes keyId = 1;}
+message GetKeyHitsResponse {int64 hits = 1;}
+
+message ListKeysRequest {
+  bytes ownerId = 1;
+  bytes lastKeyId = 2;
+  int64 limit = 3;
+}
+message ListKeysResponse {repeated Key keys = 1;}
+
+message CreateOrUpdateKeyRequest {Key key = 1;}
+message CreateOrUpdateKeyResponse {}
+
+message SetNameRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  string name = 3;
+}
+message SetNameResponse {}
+
+message SetActiveRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  bool active = 3;
+}
+message SetActiveResponse {}
+
+message SetArchivedRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+}
+message SetArchivedResponse {}
+
+message SetCorsOriginsRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated string corsOrigins = 3;
+}
+message SetCorsOriginsResponse {}
+
+message SetProvidersRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated string providers = 3;
+}
+message SetProvidersResponse {}
+
+message SetIpWhitelistRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated string ips = 3;
+}
+message SetIpWhitelistResponse {}
+
+message SetFallbackRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated string fallbackProviders = 3;
+  bool enabled = 4;
+}
+message SetFallbackResponse {}
+
+message AddPubKeyRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  PublicKey publicKey = 3;
+}
+message AddPubKeyResponse {PublicKey pk = 1;}
+
+message DropPubKeyRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  string id = 3;
+}
+message DropPubKeyResponse {bool result = 1;}
+
+message SetJwtEnabledRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  bool enabled = 3;
+}
+message SetJwtEnabledResponse {}
+
+message SetRateLimitPerMinuteRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  int64 rateLimit = 3;
+}
+
+message SetRateLimitPerMinuteResponse {}
+
+message SetMethodsBlacklistRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated string methods = 3;
+}
+
+message SetMethodsBlacklistResponse {}
+
+message SetMethodsWhitelistRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated string methods = 3;
+}
+
+message SetMethodsWhitelistResponse {}
+
+message SetContractWhitelistRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated string contracts = 3;
+}
+
+message SetContractWhitelistResponse {}
+
+message SetChainsWhitelistUpdateRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated int32 chains = 3;
+}
+
+message SetChainsWhitelistResponse {}
+
+message SetTagsRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated int32 tags = 3;
+}
+
+message SetTagsResponse {}
+
+message SetDescriptionRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  string description = 3;
+}
+
+message SetDescriptionResponse {}
+
+message TxHeightRequest {
+  emerald.ChainRef chain = 1;
+  string hash = 2;
+}
+
+message TxHeightResponse {
+  bool found = 1;
+  uint64 height = 2;
+}
+
+message GetOwnersWithBalanceRequest {}
+message GetOwnersWithBalanceResponse {
+  map<string, int64> balances = 1;
+}
+
+message SetEnableTraceIDRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  bool enabled = 3;
+}
+
+message SetEnableTraceIDResponse {}
+
+message SetClientSpecRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  string clientSpec = 3;
+}
+
+message SetClientSpecResponse {}
+
+message SetBalanceNotificationOptionsRequest {
+  bytes keyId = 1;
+  bytes ownerId = 2;
+  repeated int32 options = 3;
+}
+
+message SetBalanceNotificationOptionsResponse {}
+
+// StreamChainHeads messages
+message StreamChainHeadsRequest {
+  emerald.ChainRef chain = 1;
+}
+
+message ChainHeadEvent {
+  emerald.ChainRef chain = 1;
+  uint64 height = 2;
+  string hash = 3;
+  string parent_hash = 4;
+  uint64 timestamp = 5;
+
+  // Provider info
+  string provider_id = 6;
+  int32 provider_index = 7;
+  Region region = 8;
+}
+
+message SetOwnerAddonRequest {
+  bytes ownerId = 1;
+  string tag = 2;
+  string metadata = 3;
+}
+message SetOwnerAddonResponse {}
+
+message RemoveOwnerAddonRequest {
+  bytes ownerId = 1;
+  string tag = 2;
+}
+message RemoveOwnerAddonResponse {}
