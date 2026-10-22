@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 (2026-10-22)
+
+- Dependency updates within Grafana 13.2 compatibility (#118):
+  - `@grafana/*` 13.2.0 → 13.2.4, `grafana-plugin-sdk-go` v0.296.5 → v0.297.0, Go 1.27.3.
+  - create-plugin scaffold 7.0.2 → 7.15.1 (`@grafana/eslint-config` 10, `diagnostics-webpack-plugin`).
+  - React kept on 19.2.x and Node on 24 to match what Grafana ships.
+
 ## 1.1.0 (2026-08-28)
 
 - Synced `pkg/api` with the upstream `aggregator_api.proto` (dproxy, 2026-08-26):
