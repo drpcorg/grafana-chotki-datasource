@@ -85,9 +85,7 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
-    allow:
-      - dependency-name: "github.com/grafana/grafana-plugin-sdk-go"
-        dependency-type: "all"
+    # Default scope (direct deps): grafana-plugin-sdk-go, grpc, protobuf, uuid.
     commit-message:
       prefix: "chore"
       include: "scope"
