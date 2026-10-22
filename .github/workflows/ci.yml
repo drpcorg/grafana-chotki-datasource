@@ -147,7 +147,7 @@ jobs:
 
       - name: Resolve Grafana E2E versions
         id: resolve-versions
-        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.1.0
+        uses: grafana/plugin-actions/e2e-version@e2e-version/v3.2.0
 
   playwright-tests:
     needs: [resolve-versions, build]
@@ -205,7 +205,7 @@ jobs:
         run: npm run e2e
 
       - name: Upload e2e test summary
-        uses: grafana/plugin-actions/playwright-gh-pages/upload-report-artifacts@upload-report-artifacts/v1.0.2
+        uses: grafana/plugin-actions/playwright-gh-pages/upload-report-artifacts@upload-report-artifacts/v1.0.3
         if: ${{ always() && !cancelled() }}
         with:
           upload-report: false

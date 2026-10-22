@@ -16,22 +16,29 @@ updates:
       include: "scope"
     ignore:
       # eslint 10 is blocked: eslint-plugin-react has no eslint-10-compatible
-      # release, and @grafana/eslint-config 10 breaks the create-plugin scaffold
-      # (.config/eslint.config.mjs imports the removed flat.js export; stylistic
-      # plugin was renamed). Remove both once eslint-plugin-react supports
-      # eslint 10 AND @grafana/create-plugin updates the scaffold — see PR #67.
+      # release (7.37.5 peers eslint "^9.7"). Remove once it supports eslint 10
+      # — see PR #67.
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "@grafana/eslint-config"
-        update-types: ["version-update:semver-major"]
       # typescript 7 is blocked: no @typescript-eslint release accepts TS >=6.1
-      # (8.67.0 still peers typescript ">=4.8.4 <6.1.0", and there is no v9
-      # line), so npm ci fails on ERESOLVE before anything compiles. TS 7 also
-      # removed baseUrl, which the create-plugin-managed .config/tsconfig.json
-      # still sets (TS5102); ignoreDeprecations does not suppress a removed
-      # option. Remove once @typescript-eslint supports TS 7 AND
-      # @grafana/tsconfig drops baseUrl — see PR #76.
+      # (8.72.0 still peers typescript ">=4.8.4 <6.1.0", and there is no v9
+      # line), so npm ci fails on ERESOLVE before anything compiles. Remove once
+      # @typescript-eslint supports TS 7 — see PR #76.
       - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # React is a shared external provided by Grafana at runtime, so keep the
+      # types and test runtime on the same minor Grafana ships (13.x: 19.2).
+      # Remove once Grafana itself moves to React 19.3+.
+      - dependency-name: "react"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "react-dom"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@types/react"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      - dependency-name: "@types/react-dom"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+      # @types/node tracks the Node major in .nvmrc (24), not the latest Node.
+      - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
     groups:
       unit-test:
