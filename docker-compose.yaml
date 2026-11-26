@@ -6,4 +6,4 @@ services:
     build:
       args:
         # .config defaults to 12.4.0, below grafanaDependency (>=13.2.0) in src/plugin.json
-        grafana_version: ${GRAFANA_VERSION:-13.2.4}
+        grafana_version: ${GRAFANA_VERSION:-13.3.2}

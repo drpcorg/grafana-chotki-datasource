@@ -55,7 +55,7 @@ jobs:
 
       - name: Setup Go environment
         if: steps.check-for-backend.outputs.has-backend == 'true'
-        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
         with:
           go-version-file: go.mod
 
@@ -147,7 +147,11 @@ jobs:
 
       - name: Resolve Grafana E2E versions
         id: resolve-versions
-        uses: grafana/plugin-actions/e2e-version@30371c7770652c1dc8661d3e2e4472753b828497 # e2e-version/v3.2.4
+        uses: grafana/plugin-actions/e2e-version@e7022755532ccbdcd470c999be9155e7d257dd8a # e2e-version/v4.0.1
+        with:
+          # v4 defaults to the OSS image; keep testing against grafana-enterprise
+          # as before (also the docker-compose default).
+          grafana-image: grafana-enterprise
 
   playwright-tests:
     needs: [resolve-versions, build]
