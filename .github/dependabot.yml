@@ -21,10 +21,16 @@ updates:
       - dependency-name: "eslint"
         update-types: ["version-update:semver-major"]
       # typescript 7 is blocked: no @typescript-eslint release accepts TS >=6.1
-      # (8.72.0 still peers typescript ">=4.8.4 <6.1.0", and there is no v9
+      # (8.74.0 still peers typescript ">=4.8.4 <6.1.0", and there is no v9
       # line), so npm ci fails on ERESOLVE before anything compiles. Remove once
       # @typescript-eslint supports TS 7 — see PR #76.
       - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
+      # @stylistic/eslint-plugin 6 is blocked: @grafana/eslint-config 10.0.0 sets
+      # `@stylistic/type-annotation-spacing` with `overrides.arrow`, which v6
+      # removed, so eslint fails on config validation. Remove once
+      # @grafana/eslint-config supports @stylistic 6 — see PR #143.
+      - dependency-name: "@stylistic/eslint-plugin"
         update-types: ["version-update:semver-major"]
       # React is a shared external provided by Grafana at runtime, so keep the
       # types and test runtime on the same minor Grafana ships (13.x: 19.2).
