@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.2 (2026-11-26)
+
+- Dependency updates for Grafana 13.3 compatibility (#132, #144):
+  - `@grafana/*` 13.2.4 → 13.3.1, `grafana-plugin-sdk-go` v0.297.0 → v0.302.0, Go 1.27.4.
+  - create-plugin scaffold 7.15.1 → 8.0.2, `@grafana/plugin-e2e` 4.
+  - Tested against Grafana 13.2.7, 13.3.2 and nightly; `grafanaDependency` stays `>=13.2.0`.
+- CI: GitHub Actions pinned to release commit SHAs (#125).
+
 ## 1.1.1 (2026-10-22)
 
 - Dependency updates within Grafana 13.2 compatibility (#118):
